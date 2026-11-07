@@ -14,7 +14,7 @@ namespace TimberbornTrainer.UI {
     private readonly ResourceModule _resources;
     private readonly BuildingModule _buildings;
     private VisualElement _root, _panel, _scienceArea, _buildingArea;
-    private Label _status, _moduleTitle, _moduleDescription, _currentScience;
+    private Label _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
     private readonly Label[] _moduleStates = new Label[5];
     private Toggle _enabled, _instant, _free;
     private TextField _exchangeName, _target, _add, _subtract;
@@ -108,6 +108,8 @@ namespace TimberbornTrainer.UI {
       _free.labelElement.style.color = ControlStyles.Muted;
       _free.SetEnabled(false);
       _buildingArea.Add(_free);
+      _constructionStats = ControlStyles.Text("");
+      _buildingArea.Add(_constructionStats);
       _buildingArea.Add(ControlStyles.Text("仅推进施工时间，不补材料、不直接标记完工。暂停、支撑、占位和完工阻挡仍由游戏检查。"));
       _buildingArea.Add(ControlStyles.Text("免材料的四组合策略已进行模拟测试，实际材料适配尚未完成，不能据此认为四种组合已可用。"));
       body.Add(_buildingArea);
@@ -207,6 +209,8 @@ namespace TimberbornTrainer.UI {
       _instant.SetValueWithoutNotify(_session.State.Settings.InstantBuilding);
       _instant.SetEnabled(_session.State.Compatible && !_buildings.RuntimeError);
       _free.SetValueWithoutNotify(false);
+      _constructionStats.text = "本场景工时推进：" + _buildings.AdvancedSites +
+        "；调用后确认原生完工：" + _buildings.CompletedImmediately + "（不含随后解除阻挡的完工）";
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
       _setButton.Available(active);
       _addButton.Available(active);
