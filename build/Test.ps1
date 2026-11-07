@@ -20,3 +20,8 @@ $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.ScienceTests]::Run()
 [TimberbornTrainer.Tests.ConstructionTests]::Run()
 [TimberbornTrainer.Tests.SurvivalTests]::Run()
+$lifecycleDll = Join-Path $testRoot 'TimberbornTrainer.BeaverLifecycleTests.dll'
+$lifecycleSources = @('Modules/BeaverModule.cs','Tests/BeaverLifecycleTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+Invoke-SourceCompilation -Sources $lifecycleSources -References @($references + @($testDll)) -Output $lifecycleDll -Name 'TimberbornTrainer.BeaverLifecycleTests'
+[Reflection.Assembly]::LoadFrom($lifecycleDll) | Out-Null
+[TimberbornTrainer.Tests.BeaverLifecycleTests]::Run()
