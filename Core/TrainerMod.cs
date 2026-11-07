@@ -22,6 +22,7 @@ namespace TimberbornTrainer.Core {
       Bind<TrainerSession>().AsSingleton();
       Bind<ResourceModule>().AsSingleton();
       Bind<BuildingModule>().AsSingleton();
+      Bind<BeaverModule>().AsSingleton();
       Bind<MainPanel>().AsSingleton();
     }
   }

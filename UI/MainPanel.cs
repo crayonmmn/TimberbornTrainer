@@ -13,6 +13,11 @@ namespace TimberbornTrainer.UI {
     private readonly UILayout _layout;
     private readonly ResourceModule _resources;
     private readonly BuildingModule _buildings;
+    private readonly BeaverModule _beavers;
+    private InventoryPanel _inventory;
+    private VisualElement _beaverArea;
+    private Toggle _hunger, _thirst;
+    private Label _needStatus;
     private VisualElement _root, _panel, _scienceArea, _buildingArea;
     private Label _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
     private readonly Label[] _moduleStates = new Label[5];
@@ -23,8 +28,9 @@ namespace TimberbornTrainer.UI {
     private int _selected;
     private bool _loaded;
 
-    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings) {
+    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers) {
       _session = session; _layout = layout; _resources = resources; _buildings = buildings;
+      _beavers = beavers;
     }
 
     public void Load() {
@@ -57,7 +63,7 @@ namespace TimberbornTrainer.UI {
       _enabled.style.minHeight = 30;
       _enabled.SetEnabled(_session.State.Compatible);
       _enabled.RegisterValueChangedCallback(e => Run(() => _session.State.SetEnabled(e.newValue),
-        e.newValue ? "全局已启用；实验性施工仅在独立测试局启用。" : "全局已关闭，科研和施工修改均已停止。"));
+        e.newValue ? "全局已启用；实验功能仅在独立测试局验证。" : "全局已关闭，修改命令和持续性修改已停止。"));
       _panel.Add(_enabled);
       var navigation = ControlStyles.Row();
       for (int i = 0; i < Chinese.Modules.Length; ++i) {
@@ -94,6 +100,8 @@ namespace TimberbornTrainer.UI {
       _add = AddScienceRow("增加数量", "100", "增加点数", ScienceOperation.Add, out _addButton);
       _subtract = AddScienceRow("减少数量", "100", "减少点数", ScienceOperation.Subtract, out _subtractButton);
       _scienceArea.Add(ControlStyles.Text("仅接受零至十亿的整数；减少数量不能超过余额。"));
+      _inventory = new InventoryPanel(_resources);
+      _scienceArea.Add(_inventory);
       body.Add(_scienceArea);
       _buildingArea = new VisualElement();
       _instant = new Toggle("瞬间施工（实验功能，尚未实机验证）");
@@ -113,6 +121,14 @@ namespace TimberbornTrainer.UI {
       _buildingArea.Add(ControlStyles.Text("仅推进施工时间，不补材料、不直接标记完工。暂停、支撑、占位和完工阻挡仍由游戏检查。"));
       _buildingArea.Add(ControlStyles.Text("免材料的四组合策略已进行模拟测试，实际材料适配尚未完成，不能据此认为四种组合已可用。"));
       body.Add(_buildingArea);
+      _beaverArea = new VisualElement();
+      _hunger = AddNeedToggle("锁定饥饿需求（实验功能）", true);
+      _thirst = AddNeedToggle("锁定口渴需求（实验功能）", false);
+      _beaverArea.Add(_hunger); _beaverArea.Add(_thirst);
+      _beaverArea.Add(ControlStyles.Text("维持启用时的需求下限，允许进食和饮水改善；关闭后停止补偿，原生需求继续更新。不会自动救治已为零或负值的需求，请先供应食物和水。"));
+      _needStatus = ControlStyles.Text("待实机验证，包括现有海狸、新生海狸与关闭后的恢复。");
+      _beaverArea.Add(_needStatus);
+      body.Add(_beaverArea);
 
       // Compact optional configuration; paths are tooltips instead of wrapping paragraphs.
       var config = new Foldout { text = "配置导入与导出", value = false };
@@ -167,6 +183,16 @@ namespace TimberbornTrainer.UI {
       _scienceArea.Add(row);
       return field;
     }
+    private Toggle AddNeedToggle(string text, bool hunger) {
+      var toggle = new Toggle(text);
+      toggle.labelElement.style.color = ControlStyles.Light;
+      toggle.RegisterValueChangedCallback(e => Run(() => {
+        var settings = _session.State.Settings;
+        if (hunger) settings.LockHunger = e.newValue; else settings.LockThirst = e.newValue;
+        _session.State.Apply(settings);
+      }, "需求维持偏好已更新；须全局启用才生效。"));
+      return toggle;
+    }
 
     private void ExecuteScience(ScienceOperation operation, string input) {
       var result = _resources.Science.Execute(operation, input);
@@ -209,6 +235,15 @@ namespace TimberbornTrainer.UI {
       _instant.SetValueWithoutNotify(_session.State.Settings.InstantBuilding);
       _instant.SetEnabled(_session.State.Compatible && !_buildings.RuntimeError);
       _free.SetValueWithoutNotify(false);
+      _hunger.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
+      _thirst.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
+      ControlStyles.ToggleState(_hunger, _session.State.Settings.LockHunger);
+      ControlStyles.ToggleState(_thirst, _session.State.Settings.LockThirst);
+      _moduleStates[2].text = _beavers.RuntimeError ? "运行异常" : active &&
+        (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用·待实测" : "已禁用·实验";
+      _needStatus.text = "本场景维持：饥饿 " + _beavers.HungerCount + "；口渴 " + _beavers.ThirstCount +
+        "；需先恢复供给的需求 " + _beavers.UnsafeNeeds + "。新生与停用恢复待实测。";
+      _inventory.Refresh(active);
       _constructionStats.text = "本场景工时推进：" + _buildings.AdvancedSites +
         "；调用后确认原生完工：" + _buildings.CompletedImmediately + "（不含随后解除阻挡的完工）";
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
@@ -220,10 +255,12 @@ namespace TimberbornTrainer.UI {
     private void SelectModule(int index) {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
-      _moduleDescription.text = index == 0 ? "仅科研点数可用；木材、食物、水和其他库存修改尚未实现。"
+      _moduleDescription.text = index == 0 ? "科研已验证；单仓库食物、水及允许资源的库存修改待实机验证。"
         : index == 1 ? "瞬间施工核心已接入，待实测；免材料和生产倍率未实现。" : "未实现：" + Chinese.Descriptions[index];
+      if (index == 2) _moduleDescription.text = "饥饿与口渴独立维持；实验功能，尚未完成实机验收。";
       _scienceArea.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;
       _buildingArea.style.display = index == 1 ? DisplayStyle.Flex : DisplayStyle.None;
+      _beaverArea.style.display = index == 2 ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
     private void Run(Action action, string success) {

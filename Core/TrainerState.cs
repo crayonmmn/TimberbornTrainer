@@ -10,12 +10,12 @@ namespace TimberbornTrainer.Core {
     public string GameVersion { get; }
     public string CompatibilityMessage { get; }
     public const string TargetVersion = "1.1.2.8-ffc2de0-sw";
-    public const string ModVersion = "0.3.0-dev";
+    public const string ModVersion = "0.3.0-survival-dev";
 
     public TrainerState(string version, bool windows64, string unityVersion) {
       GameVersion = version ?? "未知";
       Compatible = windows64 && version == TargetVersion && unityVersion == "6000.5.11f1";
-      CompatibilityMessage = Compatible ? "版本检查通过；瞬间施工为待实测实验功能" : "运行环境不匹配，已禁止启用";
+      CompatibilityMessage = Compatible ? "版本检查通过；库存、需求维持与施工均为实验功能" : "运行环境不匹配，已禁止启用";
     }
 
     public void Apply(Config settings) {

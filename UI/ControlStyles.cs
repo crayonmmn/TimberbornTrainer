@@ -12,6 +12,14 @@ namespace TimberbornTrainer.UI {
       e.style.borderLeftWidth = e.style.borderRightWidth = e.style.borderTopWidth = e.style.borderBottomWidth = 1;
       e.style.borderLeftColor = e.style.borderRightColor = e.style.borderTopColor = e.style.borderBottomColor = color;
     }
+    internal static void ToggleState(Toggle toggle, bool value) {
+      toggle.SetValueWithoutNotify(value);
+      var check = toggle.Q("unity-checkmark");
+      if (check != null) {
+        Border(check, toggle.enabledInHierarchy ? Accent : Muted);
+        check.style.backgroundColor = value ? Accent : new Color(.07f, .1f, .1f);
+      }
+    }
     internal static Label Text(string text) {
       var label = new Label(text);
       label.style.color = Light;
