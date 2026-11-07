@@ -1,0 +1,8 @@
+{
+  "Name": "海狸修改工具",
+  "Version": "0.3.0.0",
+  "Id": "TimberbornTrainer.Core",
+  "MinimumGameVersion": "1.1.2.8",
+  "Description": "海狸修改工具开发版：科研点数、待实测瞬间施工；免材料尚未接入。",
+  "RequiredMods": []
+}

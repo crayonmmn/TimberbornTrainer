@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>TimberbornTrainer</AssemblyName>
+    <RootNamespace>TimberbornTrainer</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GamePath Condition="'$(GamePath)' == ''">$(TIMBERBORN_GAME_PATH)</GamePath>
+    <GameManagedPath>$(GamePath)/Timberborn_Data/Managed</GameManagedPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Core/**/*.cs;Modules/**/*.cs;UI/**/*.cs;Patches/**/*.cs" />
+    <Reference Include="$(GameManagedPath)/*.dll" Exclude="$(GameManagedPath)/mscorlib.dll;$(GameManagedPath)/netstandard.dll;$(GameManagedPath)/System*.dll;$(GameManagedPath)/Microsoft*.dll">
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <Target Name="ValidateGamePath" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(GameManagedPath)/Timberborn.ModManagerScene.dll')" Text="请通过 GamePath 或 TIMBERBORN_GAME_PATH 指定游戏目录。" />
+  </Target>
+</Project>
