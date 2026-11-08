@@ -31,7 +31,7 @@ if (!$CompileOnly) {
 [TimberbornTrainer.Tests.BeaverLifecycleTests]::Run()
 }
 $inventoryDll = Join-Path $testRoot 'TimberbornTrainer.InventoryCatalogTests.dll'
-$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Modules/NativeInventoryTiming.cs','Modules/InventoryTimingTrace.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $inventorySources -References @($references + @($testDll)) -Output $inventoryDll -Name 'TimberbornTrainer.InventoryCatalogTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($inventoryDll) | Out-Null

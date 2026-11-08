@@ -13,6 +13,11 @@ using Timberborn.Stockpiles;
 namespace TimberbornTrainer.Modules {
   public sealed partial class NativeInventoryCatalog : IInventorySafetyDiagnostics {
     public InventorySafetyReport DiagnoseSafety(string targetId, string goodId) {
+      _timing.Record("UI.Diagnose.Enter", _observedTicks);
+      try { return ObserveSafety(targetId, goodId); }
+      finally { _timing.Record("UI.Diagnose.Exit", _observedTicks); }
+    }
+    private InventorySafetyReport ObserveSafety(string targetId, string goodId) {
       var identity = DiagnoseIdentity(targetId, goodId);
       try {
         NativeTarget target;

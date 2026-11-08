@@ -94,6 +94,12 @@ namespace TimberbornTrainer.Tests {
       Check(!report.ObservationConsistent && report.ReservedStock == null && report.Rows.Count == 0, "读取异常保留未知，无重试。");
       f = new Fixture(); f.Catalog.Unload();
       Check(!f.Catalog.DiagnoseSafety(f.Target, "Water").CandidateEligible, "场景卸载后诊断仍不能授予资格。");
+      var trace = new InventoryTimingTrace();
+      trace.Record("Disabled", 0); Check(!trace.Summary().Contains("Disabled"), "时序默认关闭。");
+      trace.Start("Scene"); for (int i = 0; i < 300; ++i) trace.Record("Bounded", i);
+      Check(trace.Stop().Contains("256/256"), "时序数量上限。");
+      trace.Clear(); Check(!trace.Summary().Contains("Bounded"), "卸载清除场景时序。");
+      trace.Record("AfterUnload", 0); Check(!trace.Summary().Contains("AfterUnload"), "卸载后不再记录。");
       return "原生库存身份／预留替身测试：" + _checks + " 项断言通过。不是实机证明。";
     }
   }

@@ -38,6 +38,15 @@ namespace TimberbornTrainer.UI {
       var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); Add(diagnose);
       diagnose.Available(_diagnostics != null);
       _safety = ControlStyles.Text("安全诊断未读取；仅主动点击时检查选中库存，不授予写入权限。"); Add(_safety);
+      var timing = catalog as IInventoryTimingDiagnostics;
+      var traceRow = ControlStyles.Row();
+      traceRow.Add(new ActionButton("开始时序记录（10秒上限）", () => { timing?.StartTiming(); _safety.text = "只读时序记录已开始；无库存操作，最多256条。"; }));
+      traceRow.Add(new ActionButton("停止并查看时序", () => {
+        string text = timing?.StopTiming() ?? "当前服务不支持时序记录。";
+        _safety.text = string.Join("\n", text.Split('\n').Take(8)) + "\n完整记录已写入游戏日志；不证明安全执行点。";
+        _safety.tooltip = text;
+      }));
+      Add(traceRow);
       _source.RegisterValueChangedCallback(_ => {
         if (_painting || _disposed) return;
         _browser.Switch((InventorySource)_source.index); RenderTargets();

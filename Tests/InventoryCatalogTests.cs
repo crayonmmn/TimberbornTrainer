@@ -18,6 +18,8 @@ namespace Timberborn.SingletonSystem {
   public interface IPostLoadableSingleton { void PostLoad(); }
   public interface IUnloadableSingleton { void Unload(); }
 }
+namespace Timberborn.TickSystem { public interface ITickableSingleton { void Tick(); } }
+namespace UnityEngine { public static class Debug { public static void Log(object message) { } } }
 namespace Timberborn.EntitySystem {
   public class EntityComponent : InventoryTestDoubles.Component {
     public Guid EntityId = Guid.NewGuid(); public bool Initialized = true, Deleted;

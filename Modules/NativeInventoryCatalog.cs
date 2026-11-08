@@ -58,6 +58,7 @@ namespace TimberbornTrainer.Modules {
       _excludedObjects = 0; _excludedInventories = 0;
     }
     public void Unload() {
+      _timing.Clear(); _observedTicks = 0;
       _ready = false; Clear(); _scene = null; _scanCount = 0;
       _entities = null; _districts = null; _goods = null; _counts = null; _selection = null;
     }
