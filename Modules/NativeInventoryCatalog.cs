@@ -18,7 +18,7 @@ using Timberborn.SingletonSystem;
 using Timberborn.Stockpiles;
 
 namespace TimberbornTrainer.Modules {
-  public sealed class NativeInventoryCatalog : IInventoryCatalog, IPostLoadableSingleton, IUnloadableSingleton {
+  public sealed partial class NativeInventoryCatalog : IInventoryCatalog, IPostLoadableSingleton, IUnloadableSingleton {
     private const string WriteBlocked = "本阶段仅开放读取，新增适配器写入尚未审核与授权。";
     private EntityRegistry _entities;
     private DistrictCenterRegistry _districts;
@@ -32,6 +32,9 @@ namespace TimberbornTrainer.Modules {
       public InventoryTarget Description;
       public EntityComponent Owner;
       public Inventory Inventory;
+      public string Scene, Component;
+      public Guid EntityId;
+      public EntityComponent DistrictOwner;
     }
 
     public NativeInventoryCatalog(EntityRegistry entities, DistrictCenterRegistry districts,
@@ -161,7 +164,11 @@ namespace TimberbornTrainer.Modules {
           Source = InventorySource.Building, Purpose = purpose + (inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察"),
           Abilities = new InventoryAbilities(true, WriteBlocked)
         };
-        _targets.Add(id, new NativeTarget { Owner = owner, Inventory = inventory, Description = d });
+        var districtBuilding = owner.GetComponent<DistrictBuilding>();
+        _targets.Add(id, new NativeTarget { Owner = owner, Inventory = inventory, Description = d,
+          Scene = _scene, EntityId = owner.EntityId, Component = inventory.ComponentName,
+          DistrictOwner = districtBuilding && districtBuilding.District
+            ? districtBuilding.District.GetComponent<EntityComponent>() : null });
       }
     }
     private static string Purpose(EntityComponent owner, Inventory inventory) {

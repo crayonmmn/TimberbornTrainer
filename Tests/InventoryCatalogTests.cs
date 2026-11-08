@@ -28,13 +28,15 @@ namespace Timberborn.EntitySystem {
   public class EntityRegistry {
     public readonly List<EntityComponent> Values = new List<EntityComponent>(); public int Enumerations;
     public IEnumerable<EntityComponent> Entities { get { ++Enumerations; return Values; } }
+    public EntityComponent GetEntity(Guid id) => Values.FirstOrDefault(e => e.EntityId == id);
   }
   public class LabeledEntity : InventoryTestDoubles.Component { public string DisplayName = "模组仓库"; }
 }
 namespace Timberborn.Buildings { public class BuildingSpec { } public class Building : InventoryTestDoubles.Component { public BuildingSpec Spec = new BuildingSpec(); } }
-namespace Timberborn.BlockSystem { public class BlockObject : InventoryTestDoubles.Component { public string Coordinates = "1,2,3"; } }
+namespace Timberborn.BlockSystem { public class BlockObject : InventoryTestDoubles.Component { public string Coordinates = "1,2,3"; public bool IsFinished = true; } }
 namespace Timberborn.EntityNaming { public class NamedEntity : InventoryTestDoubles.Component { public string EntityName = "自定义建筑名称"; } }
 namespace Timberborn.GameDistricts {
+  public class DistrictBuilding : InventoryTestDoubles.Component { public DistrictCenter District; }
   public class DistrictCenter : InventoryTestDoubles.Component { public string DistrictName = "地区甲"; }
   public class DistrictCenterRegistry {
     public readonly List<DistrictCenter> Values = new List<DistrictCenter>(); public int Enumerations;

@@ -1,5 +1,5 @@
 [CmdletBinding()]
-param([Parameter(Mandatory = $true)][string]$GamePath, [string]$CompilerDirectory = $PSHOME)
+param([Parameter(Mandatory = $true)][string]$GamePath, [string]$CompilerDirectory = $PSHOME, [switch]$CompileOnly)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -13,6 +13,7 @@ $testRoot = Join-Path $projectRoot 'TestResults'
 $testDll = Join-Path $testRoot 'TimberbornTrainer.ConfigTests.dll'
 $sources = @('Core/Config.cs','Core/TrainerState.cs','Modules/ScienceCommands.cs','Modules/ConstructionRules.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
 Invoke-SourceCompilation -Sources $sources -References $references -Output $testDll -Name 'TimberbornTrainer.ConfigTests'
+if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($jsonDll) | Out-Null
 [Reflection.Assembly]::LoadFrom($testDll) | Out-Null
 $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
@@ -21,21 +22,29 @@ $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.ConstructionTests]::Run()
 [TimberbornTrainer.Tests.SurvivalTests]::Run()
 [TimberbornTrainer.Tests.InventoryBrowserTests]::Run()
+}
 $lifecycleDll = Join-Path $testRoot 'TimberbornTrainer.BeaverLifecycleTests.dll'
 $lifecycleSources = @('Modules/BeaverModule.cs','Tests/BeaverLifecycleTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $lifecycleSources -References @($references + @($testDll)) -Output $lifecycleDll -Name 'TimberbornTrainer.BeaverLifecycleTests'
+if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($lifecycleDll) | Out-Null
 [TimberbornTrainer.Tests.BeaverLifecycleTests]::Run()
+}
 $inventoryDll = Join-Path $testRoot 'TimberbornTrainer.InventoryCatalogTests.dll'
-$inventorySources = @('Modules/NativeInventoryCatalog.cs','Tests/InventoryCatalogTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $inventorySources -References @($references + @($testDll)) -Output $inventoryDll -Name 'TimberbornTrainer.InventoryCatalogTests'
+if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($inventoryDll) | Out-Null
 [TimberbornTrainer.Tests.InventoryCatalogTests]::Run()
+[TimberbornTrainer.Tests.NativeInventorySafetyTests]::Run()
+}
 $planDll = Join-Path $testRoot 'TimberbornTrainer.InventoryWritePlanTests.dll'
 $planSources = @('Modules/InventoryWritePlan.cs','Tests/InventoryWritePlanTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 # Standalone pure layer: no game DLL, Newtonsoft, Unity or fake game types in references.
 $planReferences = @(([string][AppContext]::GetData('TRUSTED_PLATFORM_ASSEMBLIES')).Split([IO.Path]::PathSeparator))
 $planReferences = @($planReferences | Where-Object { [IO.Path]::GetFileName($_) -ne 'Newtonsoft.Json.dll' })
 Invoke-SourceCompilation -Sources $planSources -References $planReferences -Output $planDll -Name 'TimberbornTrainer.InventoryWritePlanTests'
+if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($planDll) | Out-Null
 [TimberbornTrainer.Tests.InventoryWritePlanTests]::Run()
+} else { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }
