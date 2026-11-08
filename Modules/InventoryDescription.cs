@@ -63,7 +63,25 @@ namespace TimberbornTrainer.Modules {
     public string Message { get; set; }
   }
 
+  public sealed class InventoryScanReport {
+    public bool Completed { get; set; }
+    public int Sequence { get; set; }
+    public double ElapsedMilliseconds { get; set; }
+    public int RegisteredResources { get; set; }
+    public int InspectedEntities { get; set; }
+    public int RecognizedBuildings { get; set; }
+    public int InventoryBuildings { get; set; }
+    public int ReadableInventories { get; set; }
+    public int DistrictCenters { get; set; }
+    public int ExcludedObjects { get; set; }
+    public int ExcludedInventories { get; set; }
+    public string Message { get; set; }
+    public string[] ExclusionReasons { get; set; } = Array.Empty<string>();
+  }
+
   public interface IInventoryCatalog {
+    InventoryScanReport LastScan { get; }
+    InventoryScanReport Scan();
     InventoryDiscovery Discover(InventorySource source);
     InventorySnapshot Read(string targetId);
     bool Focus(string targetId);

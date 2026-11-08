@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
+using Timberborn.Buildings;
 using Timberborn.BlockSystem;
 using Timberborn.ConstructionSites;
 using Timberborn.DistributionSystem;
@@ -26,7 +28,6 @@ namespace TimberbornTrainer.Modules {
     private string _scene;
     private bool _ready;
     private readonly Dictionary<string, NativeTarget> _targets = new Dictionary<string, NativeTarget>();
-    private readonly List<string> _warnings = new List<string>();
     private sealed class NativeTarget {
       public InventoryTarget Description;
       public EntityComponent Owner;
@@ -41,68 +42,123 @@ namespace TimberbornTrainer.Modules {
       if (_entities == null || _ready) return;
       _scene = Guid.NewGuid().ToString("N"); _ready = true;
     }
-    public void Clear() { _targets.Clear(); _warnings.Clear(); }
+    public InventoryScanReport LastScan { get; private set; }
+    private int _scanCount;
+    private InventorySource _viewSource;
+    private string[] _registeredGoods = Array.Empty<string>();
+    private readonly HashSet<EntityComponent> _districtOwners = new HashSet<EntityComponent>();
+    private readonly Dictionary<string, int> _excluded = new Dictionary<string, int>();
+    private int _excludedObjects, _excludedInventories;
+    public void Clear() {
+      _targets.Clear(); _districtOwners.Clear(); _registeredGoods = Array.Empty<string>();
+      _excluded.Clear(); LastScan = null;
+      _excludedObjects = 0; _excludedInventories = 0;
+    }
     public void Unload() {
-      _ready = false; Clear(); _scene = null;
+      _ready = false; Clear(); _scene = null; _scanCount = 0;
       _entities = null; _districts = null; _goods = null; _counts = null; _selection = null;
     }
-    public InventoryDiscovery Discover(InventorySource source) {
+    public InventoryScanReport Scan() {
+      if (!_ready) return new InventoryScanReport { Message = "场景尚未完成初始化或已经卸载，不能扫描。" };
+      var report = new InventoryScanReport { Sequence = ++_scanCount };
+      var watch = Stopwatch.StartNew();
       Clear();
-      if (!_ready) return new InventoryDiscovery { Message = "场景尚未完成初始化，或已经卸载；请稍后主动刷新。" };
-      if (source == InventorySource.Settlement) {
+      try {
+        _registeredGoods = _goods.Goods.Distinct().OrderBy(id => id, StringComparer.Ordinal).ToArray();
+        foreach (string id in _registeredGoods) {
+          if (_goods.GetGood(id) == null) throw new InvalidOperationException("注册资源定义缺失。");
+        }
+        report.RegisteredResources = _registeredGoods.Length;
+        foreach (var center in _districts.FinishedDistrictCenters.ToArray()) {
+          if (center && OwnerValid(center.GetComponent<EntityComponent>())) _districtOwners.Add(center.GetComponent<EntityComponent>());
+        }
+        report.DistrictCenters = _districtOwners.Count;
+        foreach (var entity in _entities.Entities.ToArray()) {
+          ++report.InspectedEntities;
+          try {
+            if (OwnerValid(entity)) ++report.RecognizedBuildings;
+            AddBuilding(entity);
+          } catch {
+            foreach (string id in _targets.Where(p => ReferenceEquals(p.Value.Owner, entity)).Select(p => p.Key).ToArray()) _targets.Remove(id);
+            _districtOwners.Remove(entity);
+            Exclude("实体或库存组件检查异常，未纳入目录");
+          }
+        }
+        report.DistrictCenters = _districtOwners.Count;
+        report.ReadableInventories = _targets.Count;
+        report.InventoryBuildings = _targets.Values.Select(t => t.Description.OwnerId).Distinct().Count();
         var d = new InventoryTarget {
           Id = InventoryIdentity.Target(_scene, "settlement", "statistics"),
           OwnerId = InventoryIdentity.Owner(_scene, "settlement"), OwnerName = "聚居地",
-          BuildingType = "资源统计", DisplayName = "聚居地资源统计", Source = source,
+          BuildingType = "资源统计", DisplayName = "聚居地资源统计", Source = InventorySource.Settlement,
           Purpose = "原生统计汇总，包含仓储、生产缓冲与在途物资，不是独立仓库",
           Abilities = new InventoryAbilities(true, "聚合统计只读，没有对应的单个可写库存。")
         };
         _targets.Add(d.Id, new NativeTarget { Description = d });
-      } else if (source == InventorySource.DistrictCenter) {
-        foreach (var center in _districts.FinishedDistrictCenters.ToArray()) {
-          if (center) AddBuilding(center.GetComponent<EntityComponent>(), source, center.DistrictName);
-        }
-      } else if (source == InventorySource.Building) {
-        // The only settlement-wide inventory discovery path; called by explicit list requests.
-        foreach (var entity in _entities.Entities.ToArray()) {
-          AddBuilding(entity, source, null);
-        }
-      } else throw new ArgumentOutOfRangeException(nameof(source));
+        report.Completed = true; report.Message = "扫描完成；目录仅在当前场景有效，实际库存仍按需读取。";
+        report.ExcludedObjects = _excludedObjects; report.ExcludedInventories = _excludedInventories;
+        report.ExclusionReasons = _excluded.Select(p => p.Key + "：" + p.Value).OrderBy(s => s).ToArray();
+      } catch {
+        Clear(); report.Message = "扫描失败，已清除目录和场景对象缓存，请主动重试。";
+      } finally { watch.Stop(); report.ElapsedMilliseconds = watch.Elapsed.TotalMilliseconds; }
+      LastScan = report;
+      return report;
+    }
+    private void Exclude(string reason, bool inventory = false) {
+      int count; _excluded.TryGetValue(reason, out count); _excluded[reason] = count + 1;
+      if (inventory) ++_excludedInventories; else ++_excludedObjects;
+    }
+    public InventoryDiscovery Discover(InventorySource source) {
+      if (source != InventorySource.Settlement && source != InventorySource.DistrictCenter && source != InventorySource.Building)
+        throw new ArgumentOutOfRangeException(nameof(source));
+      _viewSource = source;
+      if (!_ready || LastScan == null || !LastScan.Completed)
+        return new InventoryDiscovery { Message = "尚无当前场景扫描目录，请点击“扫描资源与库存”。" };
+      var targets = _targets.Values.Where(t => source == InventorySource.Settlement
+        ? t.Description.Source == InventorySource.Settlement
+        : t.Description.Source != InventorySource.Settlement && (source == InventorySource.Building || _districtOwners.Contains(t.Owner)));
       return new InventoryDiscovery {
-        Targets = _targets.Values.Select(t => t.Description).OrderBy(t => t.OwnerName)
+        Targets = targets.Select(t => Describe(t.Description, source)).OrderBy(t => t.OwnerName)
           .ThenBy(t => t.DisplayName).ThenBy(t => t.Id, StringComparer.Ordinal).ToArray(),
-        Message = source == InventorySource.Settlement ? "原生统计可能到下一次模拟更新才同步。"
-          : "已按需发现库存。全部只读；地区交汇点已排除。单击选择，双击定位建筑。"
-            + (_warnings.Count == 0 ? "" : "\n" + string.Join("\n", _warnings.Distinct()))
+        Message = "使用已有扫描目录，未重新枚举场景。新增或删除建筑后可主动重新扫描；选中时重新验证对象。"
       };
     }
+    private static InventoryTarget Describe(InventoryTarget d, InventorySource source) => new InventoryTarget {
+      Id = d.Id, OwnerId = d.OwnerId, OwnerName = d.OwnerName, BuildingType = d.BuildingType,
+      DisplayName = d.DisplayName, Purpose = d.Purpose, Source = source, Abilities = d.Abilities
+    };
     private static bool OwnerValid(EntityComponent owner) => owner && owner.Initialized && !owner.Deleted
-      && owner.GetComponent<BlockObject>();
-    private void AddBuilding(EntityComponent owner, InventorySource source, string districtName) {
-      if (!OwnerValid(owner) || owner.GetComponent<DistrictCrossingInventory>() || owner.GetComponent<DistrictCrossing>()) return;
+      && owner.GetComponent<BlockObject>() && owner.GetComponent<Building>() && owner.GetComponent<Building>().Spec != null;
+    private void AddBuilding(EntityComponent owner) {
+      if (!owner) return;
       var inventories = owner.GetComponent<Inventories>();
       if (!inventories) return;
+      if (!OwnerValid(owner)) { Exclude("缺少有效原生建筑身份或实体未就绪（含自然物体与未知实体）"); return; }
+      if (owner.GetComponent<DistrictCrossingInventory>() || owner.GetComponent<DistrictCrossing>()) {
+        Exclude("地区交汇点或运输镜像实体，安全排除"); return;
+      }
       var labeled = owner.GetComponent<LabeledEntity>();
       var named = owner.GetComponent<NamedEntity>();
+      var center = owner.GetComponent<DistrictCenter>();
       string type = labeled ? labeled.DisplayName : "未命名建筑类型";
-      string name = !string.IsNullOrEmpty(districtName) ? districtName : named ? named.EntityName : type;
+      string name = center ? center.DistrictName : named ? named.EntityName : type;
       if (string.IsNullOrEmpty(name)) name = type;
       name += "（" + owner.GetComponent<BlockObject>().Coordinates + "）";
       var all = inventories.AllInventories.ToArray();
+      var names = all.Where(i => i && !string.IsNullOrEmpty(i.ComponentName)).GroupBy(i => i.ComponentName)
+        .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
       foreach (var inventory in all) {
-        // Duplicate/missing component names cannot provide an unambiguous native identity.
-        if (!inventory) continue;
-        if (string.IsNullOrEmpty(inventory.ComponentName)
-            || all.Count(i => i && i.ComponentName == inventory.ComponentName) != 1) {
-          _warnings.Add(name + "：跳过组件名缺失或重复的库存，无法建立可靠身份。"); continue;
+        if (!inventory) { Exclude("库存组件失效", true); continue; }
+        if (string.IsNullOrEmpty(inventory.ComponentName) || names[inventory.ComponentName] != 1) {
+          Exclude("库存组件名缺失或重复，无法建立稳定身份", true); continue;
         }
         string id = InventoryIdentity.Target(_scene, owner.EntityId.ToString(), inventory.ComponentName);
-        if (_targets.ContainsKey(id)) continue;
+        if (_targets.ContainsKey(id)) { Exclude("原生库存身份重复", true); continue; }
         string purpose = Purpose(owner, inventory);
         var d = new InventoryTarget {
           Id = id, OwnerId = InventoryIdentity.Owner(_scene, owner.EntityId.ToString()), OwnerName = name,
           BuildingType = type, DisplayName = purpose + "［" + inventory.ComponentName + "］",
-          Source = source, Purpose = purpose + (inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察"),
+          Source = InventorySource.Building, Purpose = purpose + (inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察"),
           Abilities = new InventoryAbilities(true, WriteBlocked)
         };
         _targets.Add(id, new NativeTarget { Owner = owner, Inventory = inventory, Description = d });
@@ -125,7 +181,7 @@ namespace TimberbornTrainer.Modules {
       if (target.Description.Source == InventorySource.Settlement) return true;
       if (!OwnerValid(target.Owner) || !target.Inventory
           || target.Owner.GetComponent<DistrictCrossingInventory>() || target.Owner.GetComponent<DistrictCrossing>()) return false;
-      if (target.Description.Source == InventorySource.DistrictCenter) {
+      if (_viewSource == InventorySource.DistrictCenter) {
         var center = target.Owner.GetComponent<DistrictCenter>();
         if (!center || !_districts.FinishedDistrictCenters.Contains(center)) return false;
       }
@@ -136,13 +192,21 @@ namespace TimberbornTrainer.Modules {
     public InventorySnapshot Read(string targetId) {
       NativeTarget target;
       if (!_ready || targetId == null || !_targets.TryGetValue(targetId, out target) || !Valid(target)) {
-        Clear(); return new InventorySnapshot { Message = "库存对象已失效。" };
+        if (targetId != null) _targets.Remove(targetId); return new InventorySnapshot { Message = "目标已删除、替换或不再符合建筑身份，已清除该库存选择；请重新扫描。" };
       }
-      return target.Description.Source == InventorySource.Settlement ? ReadSettlement(target) : ReadNative(target);
+      try {
+        var snapshot = target.Description.Source == InventorySource.Settlement ? ReadSettlement(target) : ReadNative(target);
+        if (snapshot.Valid) {
+          snapshot.Target = Describe(target.Description, _viewSource);
+          if (target.Inventory) snapshot.Target.Purpose = Purpose(target.Owner, target.Inventory)
+            + (target.Inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察");
+        }
+        return snapshot;
+      } catch { _targets.Remove(targetId); throw; }
     }
     private InventorySnapshot ReadSettlement(NativeTarget target) {
       var rows = new List<InventoryResource>();
-      foreach (string id in _goods.Goods.ToArray().Distinct().OrderBy(g => g, StringComparer.Ordinal)) {
+      foreach (string id in _registeredGoods.Where(id => _goods.HasGood(id))) {
         var count = _counts.GetGlobalResourceCount(id);
         rows.Add(new InventoryResource {
           GoodId = id, DisplayName = GoodName(id), Registered = true, Allowed = false,
@@ -159,7 +223,7 @@ namespace TimberbornTrainer.Modules {
     private InventorySnapshot ReadNative(NativeTarget target) {
       var inventory = target.Inventory;
       var allowed = new HashSet<string>(inventory.AllowedGoods.Select(g => g.StorableGood.GoodId), StringComparer.Ordinal);
-      var registered = new HashSet<string>(_goods.Goods, StringComparer.Ordinal);
+      var registered = new HashSet<string>(_registeredGoods.Where(id => _goods.HasGood(id)), StringComparer.Ordinal);
       // Include unsupported leftovers for observation; never pretend they are allowed goods.
       var ids = allowed.Concat(inventory.Stock.Select(g => g.GoodId)).Distinct().OrderBy(g => g, StringComparer.Ordinal).ToArray();
       var rows = new List<InventoryResource>();
@@ -177,7 +241,7 @@ namespace TimberbornTrainer.Modules {
             : "资源限额和可用空位按原生接口读取；总容量与资源限额共同约束。整数上限不代表已确认无限容量。"
         });
       }
-      if (!Valid(target)) { Clear(); return new InventorySnapshot { Message = "读取期间库存失效，请重新选择。" }; }
+      if (!Valid(target)) { _targets.Remove(target.Description.Id); return new InventorySnapshot { Message = "读取期间库存失效，请重新扫描并选择。" }; }
       return new InventorySnapshot { Target = target.Description, Resources = rows.ToArray(), Valid = true,
         Message = "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。所有写入未开放。" };
     }
@@ -185,7 +249,7 @@ namespace TimberbornTrainer.Modules {
     public bool Focus(string targetId) {
       NativeTarget target;
       if (!_ready || targetId == null || !_targets.TryGetValue(targetId, out target)) return false;
-      if (!Valid(target)) { Clear(); return false; }
+      if (!Valid(target)) { _targets.Remove(targetId); return false; }
       if (target.Description.Source == InventorySource.Settlement || !target.Owner.GetComponent<SelectableObject>()) return false;
       _selection.SelectAndFocusOn(target.Owner);
       return true;

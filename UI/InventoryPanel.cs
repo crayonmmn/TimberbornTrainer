@@ -10,9 +10,10 @@ namespace TimberbornTrainer.UI {
     private readonly InventoryBrowser _browser;
     private readonly DropdownField _source, _inventory, _good;
     private readonly ScrollView _buildings;
-    private readonly Label _status, _target, _stock, _abilities;
-    private readonly ActionButton _openList;
+    private readonly Label _status, _target, _stock, _abilities, _scanStatus;
+    private readonly ActionButton _openList, _scan;
     private InventoryTarget[] _ownerInventories = Array.Empty<InventoryTarget>();
+    private string[] _resourceIds = Array.Empty<string>();
     private bool _painting, _disposed;
 
     internal InventoryPanel(IInventoryCatalog catalog) {
@@ -20,9 +21,12 @@ namespace TimberbornTrainer.UI {
       Add(ControlStyles.Text("通用资源浏览（只读架构，待实机验证）"));
       _source = Field("目标类型", new List<string> { "聚居地资源统计", "指定地区中心", "指定建筑库存" }); Add(_source);
       var actions = ControlStyles.Row();
+      _scan = new ActionButton("扫描资源与库存", Scan); actions.Add(_scan);
       _openList = new ActionButton("打开建筑列表", Discover); actions.Add(_openList);
       actions.Add(new ActionButton("主动刷新", RefreshSelected)); Add(actions);
+      _scanStatus = ControlStyles.Text("尚未扫描；打开列表不会自动扫描场景。"); Add(_scanStatus);
       _status = ControlStyles.Text("打开页面后按需读取，不后台扫描库存。"); Add(_status);
+      _status.style.minHeight = 50;
       _buildings = new ScrollView(); _buildings.style.maxHeight = 110; Add(_buildings);
       _inventory = Field("具体库存", new List<string> { "请选择目标" }); Add(_inventory);
       _good = Field("资源", new List<string> { "请选择库存" }); Add(_good);
@@ -39,7 +43,11 @@ namespace TimberbornTrainer.UI {
           _browser.Select(_ownerInventories[_inventory.index].Id); RenderSnapshot();
         }
       });
-      _good.RegisterValueChangedCallback(_ => { if (!_painting && !_disposed) RenderResource(); });
+      _good.RegisterValueChangedCallback(_ => {
+        if (_painting || _disposed) return;
+        if (_good.index >= 0 && _good.index < _resourceIds.Length) _browser.SelectGood(_resourceIds[_good.index]);
+        RenderResource();
+      });
       _openList.SetEnabled(false);
     }
     private static DropdownField Field(string label, List<string> choices) {
@@ -58,16 +66,22 @@ namespace TimberbornTrainer.UI {
       if (_disposed) return;
       _browser.Discover(); RenderTargets();
     }
+    private void Scan() {
+      if (_disposed) return;
+      _scan.Available(false);
+      try { _browser.Scan(); RenderTargets(); }
+      finally { _scan.Available(true); }
+    }
     private void RefreshSelected() {
       if (_disposed) return;
       if (_browser.Snapshot?.Target != null) {
-        _browser.Select(_browser.Snapshot.Target.Id); RenderSnapshot();
+        _browser.Select(_browser.Snapshot.Target.Id); RenderTargets();
       } else Discover();
     }
     private void RenderTargets() {
       _buildings.Clear(); _ownerInventories = Array.Empty<InventoryTarget>();
       bool settlement = _browser.Source == InventorySource.Settlement;
-      _openList.text = _browser.Source == InventorySource.Building ? "打开／刷新建筑列表" : "刷新地区中心列表";
+      _openList.text = _browser.Source == InventorySource.Building ? "打开建筑列表" : "打开地区中心列表";
       _openList.Available(!settlement);
       _buildings.style.display = settlement ? DisplayStyle.None : DisplayStyle.Flex;
       foreach (var grouping in _browser.Targets.GroupBy(t => t.OwnerId)) {
@@ -79,7 +93,7 @@ namespace TimberbornTrainer.UI {
         button.RegisterCallback<ClickEvent>(e => {
           if (e.clickCount == 2 && !_disposed) {
             bool focused = _browser.Focus(owner.Id);
-            if (!focused) RenderSnapshot();
+            if (!focused) RenderTargets();
             _status.text = focused ? "已请求原生镜头定位和高亮。" : _browser.Message;
           }
         });
@@ -94,14 +108,22 @@ namespace TimberbornTrainer.UI {
       _painting = true;
       _inventory.choices = _ownerInventories.Select(t => t.DisplayName).ToList();
       if (_inventory.choices.Count == 0) _inventory.choices.Add("没有有效库存");
-      int selected = read ? 0 : Array.FindIndex(_ownerInventories, t => t.Id == _browser.Snapshot?.Target?.Id);
+      int selected = Array.FindIndex(_ownerInventories, t => t.Id == _browser.Snapshot?.Target?.Id);
       _inventory.SetValueWithoutNotify(_inventory.choices[Math.Max(0, selected)]);
       _painting = false;
-      if (read && _ownerInventories.Length > 0) _browser.Select(_ownerInventories[0].Id);
+      if (read && _ownerInventories.Length > 0) _browser.Select(_ownerInventories[Math.Max(0, selected)].Id);
       RenderSnapshot();
     }
     private void RenderSnapshot() {
       _status.text = _browser.Message;
+      var scan = _browser.LastScan;
+      _scan.text = scan == null ? "扫描资源与库存" : "重新扫描";
+      _scanStatus.text = scan == null ? "尚未扫描；请主动扫描后再打开列表。"
+        : "第 " + scan.Sequence + " 次扫描；耗时 " + scan.ElapsedMilliseconds.ToString("F1") + " 毫秒；" + (scan.Completed ? "完成" : "失败")
+          + "\n注册资源 " + scan.RegisteredResources + "；检查实体 " + scan.InspectedEntities + "；原生建筑 " + scan.RecognizedBuildings
+          + "\n有可读库存建筑 " + scan.InventoryBuildings + "；可读库存 " + scan.ReadableInventories + "；有效地区中心 " + scan.DistrictCenters
+          + "\n排除对象 " + scan.ExcludedObjects + "；排除库存 " + scan.ExcludedInventories
+          + (scan.ExclusionReasons.Length == 0 ? "" : "\n" + string.Join("；", scan.ExclusionReasons));
       var snapshot = _browser.Snapshot;
       bool valid = snapshot != null && snapshot.Valid;
       _painting = true;
@@ -112,8 +134,14 @@ namespace TimberbornTrainer.UI {
       }
       _inventory.SetEnabled(valid && _ownerInventories.Length > 1);
       _good.choices = valid ? snapshot.Resources.Select(g => g.DisplayName + "（" + g.GoodId + "）").ToList() : new List<string>();
+      _resourceIds = valid ? snapshot.Resources.Select(g => g.GoodId).ToArray() : Array.Empty<string>();
       if (_good.choices.Count == 0) _good.choices.Add("没有可显示的资源");
-      _good.SetValueWithoutNotify(_good.choices[0]); _good.SetEnabled(valid && snapshot.Resources.Length > 0);
+      int goodIndex = valid ? Array.FindIndex(snapshot.Resources, r => r.GoodId == _browser.SelectedGoodId) : -1;
+      if (valid && goodIndex < 0 && snapshot.Resources.Length > 0) {
+        _good.choices.Insert(0, "原资源已失效，请重新选择");
+        _resourceIds = new string[] { null }.Concat(_resourceIds).ToArray();
+      }
+      _good.SetValueWithoutNotify(_good.choices[Math.Max(0, goodIndex)]); _good.SetEnabled(valid && snapshot.Resources.Length > 0);
       _painting = false;
       _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : "尚未选择有效库存。";
       _target.tooltip = valid ? snapshot.Target.Id : "";
@@ -126,8 +154,8 @@ namespace TimberbornTrainer.UI {
     private static string Number(long? value) => value.HasValue ? value.Value.ToString() : "不适用／未知";
     private void RenderResource() {
       var snapshot = _browser.Snapshot;
-      if (snapshot == null || !snapshot.Valid || _good.index < 0 || _good.index >= snapshot.Resources.Length) { _stock.text = ""; return; }
-      var row = snapshot.Resources[_good.index];
+      var row = snapshot?.Resources.FirstOrDefault(r => r.GoodId == _browser.SelectedGoodId);
+      if (snapshot == null || !snapshot.Valid || row == null) { _stock.text = ""; return; }
       bool aggregate = snapshot.Target.Source == InventorySource.Settlement;
       string capacity = row.CapacityState == CapacityState.Aggregate ? "统计汇总，不作为统一存储容量"
         : row.CapacityState == CapacityState.Unlimited ? "原生明确无限"
@@ -144,6 +172,7 @@ namespace TimberbornTrainer.UI {
     internal void Unload() {
       if (_disposed) return;
       _disposed = true; _browser.Dispose(); _ownerInventories = Array.Empty<InventoryTarget>(); _buildings.Clear();
+      _resourceIds = Array.Empty<string>();
       _inventory.choices.Clear(); _good.choices.Clear();
     }
   }
