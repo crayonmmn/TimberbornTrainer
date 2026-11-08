@@ -21,6 +21,7 @@ namespace TimberbornTrainer.Core {
     protected override void Configure() {
       Bind<TrainerSession>().AsSingleton();
       Bind<ResourceModule>().AsSingleton();
+      Bind<NativeInventoryCatalog>().AsSingleton();
       Bind<BuildingModule>().AsSingleton();
       Bind<BeaverModule>().AsSingleton();
       Bind<MainPanel>().AsSingleton();
