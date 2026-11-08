@@ -1,0 +1,42 @@
+[
+  {
+    "Name": "Timberborn.InventorySystem",
+    "Version": "0.0.0.0",
+    "SHA256": "20096C12CC21D167AC61A17CE3FFCC22750C0A2F9C50C26688D624F1E8ADA6E9"
+  },
+  {
+    "Name": "Timberborn.Goods",
+    "Version": "0.0.0.0",
+    "SHA256": "85AEB8BAB92211F90CC7EB186FB5717D2ABC09524C64E9CE85BB3A4002207E40"
+  },
+  {
+    "Name": "Timberborn.Stockpiles",
+    "Version": "0.0.0.0",
+    "SHA256": "4D26E9FAE6A7BF1DE27D4BC1C21D2DB6D4F1EF458C31EA02351F9B37751D36D6"
+  },
+  {
+    "Name": "Timberborn.SimpleOutputBuildings",
+    "Version": "0.0.0.0",
+    "SHA256": "E3110F97E285782C1A420637DC71A290355E6C6C8F39C9E7A3C87D78B5B32D2E"
+  },
+  {
+    "Name": "Timberborn.GameDistricts",
+    "Version": "0.0.0.0",
+    "SHA256": "4887519AF9982C9A499B902EE9D3FF95A4C9BFBF0766FA5F7CAF2078557DC1C9"
+  },
+  {
+    "Name": "Timberborn.EntitySystem",
+    "Version": "0.0.0.0",
+    "SHA256": "19D01E9B9CA72624F5C6413A3453F24417C6F7595C86C76FE0F94770E75C2B90"
+  },
+  {
+    "Name": "Timberborn.Carrying",
+    "Version": "0.0.0.0",
+    "SHA256": "24DEC61BED64C73226674CCF515B314C30766C67B1D4007658E6D509366E64E1"
+  },
+  {
+    "Name": "Timberborn.GameStartup",
+    "Version": "0.0.0.0",
+    "SHA256": "E8B65A6F6307B7C0ADC15A34F413CFF3B8DCE05CFA923F330E95452F5E80E9B3"
+  }
+]
