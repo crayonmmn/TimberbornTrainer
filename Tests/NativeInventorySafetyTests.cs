@@ -71,7 +71,30 @@ namespace TimberbornTrainer.Tests {
       f = new Fixture(); f.Catalog.Unload(); Check(f.Read().Code == "SceneUnavailable", "卸载后原引用不可诊断。");
       f = new Fixture(); string stale = f.Target; f.Catalog.Unload();
       Check(f.Catalog.DiagnoseIdentity(stale, "Water").Status == InventoryIdentityStatus.Invalid, "旧场景标识不能授权。");
-      return "原生库存身份替身测试：" + _checks + " 项断言通过。不是实机证明。";
+      f = new Fixture(); f.Inventory.Incoming = 0; f.Inventory.Reserved = 0;
+      var report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(report.ObservedZeroReservations && report.Rows.Count == 2, "按注册域覆盖零预留，包含另一资源。");
+      Check(report.UnknownReservationState && !report.CandidateEligible && !report.IsExecutionAuthorized,
+        "观察零预留仍不能证明同步性与隐藏状态，写入关闭。");
+      f.Inventory.ReservedByGood["Water"] = 2;
+      report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(!report.ObservedZeroReservations && report.ReservedStock == 2, "单资源物品预留。");
+      f.Inventory.Allow("ModFood", 5); f.Inventory.ReservedByGood["ModFood"] = 3;
+      report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(report.ReservedStock == 5 && report.Rows.Single(r => r.Resource == "ModFood").Reserved == 3, "跨资源物品预留不可漏读。");
+      f.Inventory.IncomingByGood["ModFood"] = 4;
+      report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(report.ReservedCapacity == 4 && !report.CandidateEligible, "全部容量预留包含另一资源。");
+      f.Inventory.IncomingByGood["Unregistered"] = 1;
+      report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(!report.ObservationConsistent && report.ReservedCapacity == null, "未知资源容量预留不能当零。");
+      f = new Fixture(); f.Inventory.Incoming = 0; f.Inventory.Reserved = 0; f.Inventory.ReservedByGood["Water"] = 99;
+      Check(!f.Catalog.DiagnoseSafety(f.Target, "Water").ObservationConsistent, "负未预留量不钳制。");
+      f.Inventory.Fail = true; report = f.Catalog.DiagnoseSafety(f.Target, "Water");
+      Check(!report.ObservationConsistent && report.ReservedStock == null && report.Rows.Count == 0, "读取异常保留未知，无重试。");
+      f = new Fixture(); f.Catalog.Unload();
+      Check(!f.Catalog.DiagnoseSafety(f.Target, "Water").CandidateEligible, "场景卸载后诊断仍不能授予资格。");
+      return "原生库存身份／预留替身测试：" + _checks + " 项断言通过。不是实机证明。";
     }
   }
 }

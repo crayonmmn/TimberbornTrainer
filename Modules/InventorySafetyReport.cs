@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace TimberbornTrainer.Modules {
   public enum InventoryIdentityStatus { Valid, Invalid, Unknown }
@@ -19,5 +22,44 @@ namespace TimberbornTrainer.Modules {
       District = district ?? "未知"; Resource = resource ?? "";
       Observation = Guid.NewGuid().ToString("N");
     }
+  }
+
+  public sealed class InventoryReservationRow {
+    public string Resource { get; }
+    public long Amount { get; }
+    public long Unreserved { get; }
+    public long Reserved => Amount - Unreserved;
+    public long CapacityReservation { get; }
+    public long FreeCapacity { get; }
+    public long Limit { get; }
+    public bool Declared { get; }
+    public bool Registered { get; }
+    internal InventoryReservationRow(string resource, long amount, long unreserved, long capacityReservation,
+        long freeCapacity, long limit, bool declared, bool registered) {
+      Resource = resource; Amount = amount; Unreserved = unreserved; CapacityReservation = capacityReservation;
+      FreeCapacity = freeCapacity; Limit = limit; Declared = declared; Registered = registered;
+    }
+  }
+  public sealed class InventorySafetyReport {
+    public InventoryIdentityReport Identity { get; }
+    public IReadOnlyList<InventoryReservationRow> Rows { get; }
+    public bool ObservationConsistent { get; }
+    public long? ReservedStock { get; }
+    public long? ReservedCapacity { get; }
+    public string Reason { get; }
+    public DateTime ObservedUtc { get; } = DateTime.UtcNow;
+    public bool ObservedZeroReservations => ObservationConsistent && ReservedStock == 0 && ReservedCapacity == 0;
+    // Public observations are not an atomic native snapshot or an exhaustive private-registry proof.
+    public bool UnknownReservationState => true;
+    public bool CandidateEligible => false;
+    public bool IsExecutionAuthorized => false;
+    internal InventorySafetyReport(InventoryIdentityReport identity, IEnumerable<InventoryReservationRow> rows,
+        bool consistent, long? reserved, long? capacityReserved, string reason) {
+      Identity = identity; Rows = new ReadOnlyCollection<InventoryReservationRow>((rows ?? Enumerable.Empty<InventoryReservationRow>()).ToArray());
+      ObservationConsistent = consistent; ReservedStock = reserved; ReservedCapacity = capacityReserved; Reason = reason;
+    }
+  }
+  public interface IInventorySafetyDiagnostics {
+    InventorySafetyReport DiagnoseSafety(string targetId, string goodId);
   }
 }

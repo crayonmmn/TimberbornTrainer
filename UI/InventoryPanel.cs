@@ -10,7 +10,8 @@ namespace TimberbornTrainer.UI {
     private readonly InventoryBrowser _browser;
     private readonly DropdownField _source, _inventory, _good;
     private readonly ScrollView _buildings;
-    private readonly Label _status, _target, _stock, _abilities, _scanStatus;
+    private readonly Label _status, _target, _stock, _abilities, _scanStatus, _safety;
+    private readonly IInventorySafetyDiagnostics _diagnostics;
     private readonly ActionButton _openList, _scan;
     private InventoryTarget[] _ownerInventories = Array.Empty<InventoryTarget>();
     private string[] _resourceIds = Array.Empty<string>();
@@ -18,6 +19,7 @@ namespace TimberbornTrainer.UI {
 
     internal InventoryPanel(IInventoryCatalog catalog) {
       _browser = new InventoryBrowser(catalog);
+      _diagnostics = catalog as IInventorySafetyDiagnostics;
       Add(ControlStyles.Text("通用资源浏览（只读架构，待实机验证）"));
       _source = Field("目标类型", new List<string> { "聚居地资源统计", "指定地区中心", "指定建筑库存" }); Add(_source);
       var actions = ControlStyles.Row();
@@ -33,6 +35,9 @@ namespace TimberbornTrainer.UI {
       _target = ControlStyles.Text(""); Add(_target);
       _stock = ControlStyles.Text(""); Add(_stock);
       _abilities = ControlStyles.Text("增加、减少、设置：未开放，等待下一阶段独立审核。"); Add(_abilities);
+      var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); Add(diagnose);
+      diagnose.Available(_diagnostics != null);
+      _safety = ControlStyles.Text("安全诊断未读取；仅主动点击时检查选中库存，不授予写入权限。"); Add(_safety);
       _source.RegisterValueChangedCallback(_ => {
         if (_painting || _disposed) return;
         _browser.Switch((InventorySource)_source.index); RenderTargets();
@@ -152,7 +157,30 @@ namespace TimberbornTrainer.UI {
     }
     private static string Ability(InventoryAbility ability) => (ability.Available ? "可用；" : "不可用；") + ability.Reason;
     private static string Number(long? value) => value.HasValue ? value.Value.ToString() : "不适用／未知";
+    private void Diagnose() {
+      if (_disposed || _diagnostics == null) return;
+      var snapshot = _browser.Snapshot;
+      if (snapshot == null || !snapshot.Valid || _browser.SelectedGoodId == null) {
+        _safety.text = "请先选择有效建筑库存及资源。聚居地汇总不适用。"; return;
+      }
+      var report = _diagnostics.DiagnoseSafety(snapshot.Target.Id, _browser.SelectedGoodId);
+      string identity = report.Identity.Status == InventoryIdentityStatus.Valid ? "本次观察有效"
+        : report.Identity.Status == InventoryIdentityStatus.Invalid ? "无效" : "未知";
+      _safety.text = "只读诊断 · " + report.ObservedUtc.ToLocalTime().ToString("HH:mm:ss")
+        + "\n身份：" + identity + "；用途：" + snapshot.Target.Purpose
+        + "\n地区标识：" + report.Identity.District + "；资源：" + report.Identity.Resource
+        + "\n物品预留：" + Number(report.ReservedStock) + "；全部容量预留：" + Number(report.ReservedCapacity)
+        + "\n资源域 " + report.Rows.Count + " 种；观察自洽：" + (report.ObservationConsistent ? "是" : "否")
+        + "；完整性／同步性：未证明\n候选写入资格：关闭；全部写入保持禁用。"
+        + "\n" + report.Identity.Reason + "\n" + report.Reason;
+      _safety.tooltip = string.Join("\n", report.Rows.Select(r => r.Resource + "：实际 " + r.Amount
+        + "，未预留 " + r.Unreserved + "，物品预留 " + r.Reserved + "，容量预留 " + r.CapacityReservation
+        + "，未预留空位 " + r.FreeCapacity + "，资源限额 " + r.Limit
+        + "，声明允许 " + (r.Declared ? "是" : "否") + "，已注册 " + (r.Registered ? "是" : "否")));
+    }
     private void RenderResource() {
+      _safety.text = "安全诊断未读取或选择已变化；请主动读取。历史观察不能授权操作。";
+      _safety.tooltip = "";
       var snapshot = _browser.Snapshot;
       var row = snapshot?.Resources.FirstOrDefault(r => r.GoodId == _browser.SelectedGoodId);
       if (snapshot == null || !snapshot.Valid || row == null) { _stock.text = ""; return; }

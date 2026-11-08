@@ -66,8 +66,12 @@ namespace Timberborn.InventorySystem {
     public readonly Dictionary<string, int> Values = new Dictionary<string, int>();
     public IEnumerable<Timberborn.Goods.GoodAmount> Stock => Values.Select(v => new Timberborn.Goods.GoodAmount { GoodId = v.Key, Amount = v.Value });
     public int AmountInStock(string id) { ++Reads; if (Fail) throw new Exception(); return Values.TryGetValue(id, out int n) ? n : 0; }
-    public int UnreservedAmountInStock(string id) => AmountInStock(id) - Reserved;
-    public int ReservedCapacity(string id) => Incoming;
+    public int UnreservedAmountInStock(string id) => AmountInStock(id) - (ReservedByGood.TryGetValue(id, out int n) ? n : Reserved);
+    public int ReservedCapacity(string id) => IncomingByGood.TryGetValue(id, out int n) ? n : Incoming;
+    public readonly Dictionary<string, int> IncomingByGood = new Dictionary<string, int>();
+    public readonly Dictionary<string, int> ReservedByGood = new Dictionary<string, int>();
+    public IEnumerable<Timberborn.Goods.GoodAmount> ReservedCapacity() => IncomingByGood.Select(p => new Timberborn.Goods.GoodAmount { GoodId = p.Key, Amount = p.Value });
+    public int TotalAmountInStock => Values.Values.Sum();
     public int UnreservedCapacity(string id) => Math.Max(0, Math.Min(Capacity - Values.Values.Sum(), Limit - AmountInStock(id)) - Incoming);
     public int LimitedAmount(string id) => Limit;
     // No Give/Take members: production catalog cannot accidentally compile a write against these doubles.
