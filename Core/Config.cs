@@ -9,6 +9,7 @@ namespace TimberbornTrainer.Core {
   public sealed class Config {
     public int SchemaVersion { get; set; } = 1;
     public bool Enabled { get; set; } = false;
+    // Deprecated compatibility fields; never authorize or schedule construction commands.
     public bool InstantBuilding { get; set; }
     public bool FreeBuilding { get; set; }
     public float ProductionMultiplier { get; set; } = 1;

@@ -1,60 +1,84 @@
-using System;
 using System.Linq;
 using Timberborn.BlockSystem;
 using Timberborn.ConstructionSites;
 using Timberborn.EntitySystem;
-using Timberborn.TickSystem;
+using Timberborn.SingletonSystem;
 using TimberbornTrainer.Core;
 using UnityEngine;
 
 namespace TimberbornTrainer.Modules {
-  public sealed class BuildingModule : ITickableSingleton {
-    private readonly TrainerSession _session;
-    private readonly EntityComponentRegistry _registry;
-    private readonly ConstructionSiteBuildTimeCalculator _time;
-    public bool RuntimeError { get; private set; }
-    public bool FreeMaterialsImplemented => false;
-    public int AdvancedSites { get; private set; }
-    public int CompletedImmediately { get; private set; }
+  public sealed class BuildingModule : IUnloadableSingleton {
+    private TrainerSession _session;
+    private EntityRegistry _entities;
+    private EventBus _events;
+    private bool _unloaded;
+    private readonly ConstructionCommands _commands;
+    public ConstructionResult LastResult { get; private set; }
+    public bool Busy => _commands.Busy;
+    public bool RuntimeError => LastResult != null && (LastResult.Errors > 0 || LastResult.Unconfirmed > 0);
 
-    public BuildingModule(TrainerSession session, EntityComponentRegistry registry, ConstructionSiteBuildTimeCalculator time) {
-      _session = session; _registry = registry; _time = time;
+    public BuildingModule(TrainerSession session, EntityRegistry entities, EventBus events) {
+      _session = session; _entities = entities; _events = events;
+      _commands = new ConstructionCommands(() => !_unloaded && _session?.State != null && _session.State.EffectiveEnabled);
     }
-    public void Tick() {
-      if (RuntimeError || _session.State == null || !_session.State.EffectiveEnabled) return;
-      var config = _session.State.Settings;
-      if (!config.InstantBuilding) return;
-      try {
-        // Completion can remove registry entries: never enumerate the live collection while mutating.
-        var sites = _registry.GetEnabled<ConstructionSite>().ToArray();
-        foreach (var site in sites) {
-          if (!site || !site.Enabled) continue;
-          // The free preference is intentionally not forwarded until a safe adapter exists.
-          var block = site.GetComponent<BlockObject>();
-          if (ConstructionEngine.TryAdvance(new NativeSite(site, _time), true, ConstructionMode.InstantOnly)) {
-            ++AdvancedSites;
-            // Read the native state after the call; advancing time is not proof of completion.
-            if (block && !block.IsUnfinished) ++CompletedImmediately;
-            Debug.Log("海狸修改工具：施工工时已推进；本场景推进次数=" + AdvancedSites +
-              "，调用后原生完工次数=" + CompletedImmediately + "。未补充施工材料。");
-          }
-        }
-      } catch (Exception e) {
-        RuntimeError = true;
-        Debug.LogError("海狸修改工具：瞬间施工出现异常（" + e.GetType().Name +
-          "），已暂停本场景建造模块；请检查工地状态，不会自动重试。");
+
+    public ConstructionResult CompleteAll() {
+      var result = _commands.Execute(() => {
+        // Finishing can mutate the registry: snapshot before inspecting or finishing any entity.
+        var entities = _entities.Entities.ToArray();
+        return entities.Select(entity => (IConstructionTarget)new NativeSite(_entities, _events, entity)).ToArray();
+      }, e => Debug.LogError("海狸修改工具：批量完工异常（" + e.GetType().Name +
+        "）；工地可能已变化，不自动重试或回滚。"));
+      if (!Busy) LastResult = result;
+      return result;
+    }
+
+    public void Unload() {
+      _unloaded = true;
+      _session = null; _entities = null; _events = null; LastResult = null;
+    }
+
+    private sealed class NativeSite : IConstructionTarget {
+      private readonly EntityRegistry _registry;
+      private readonly EventBus _events;
+      private readonly EntityComponent _entity;
+      private ConstructionSite _site;
+      private BlockObject _block;
+      public NativeSite(EntityRegistry registry, EventBus events, EntityComponent entity) {
+        _registry = registry; _events = events; _entity = entity;
+      }
+      public ConstructionTargetState Inspect() {
+        if (!_entity || _entity.Deleted || !_entity.Initialized ||
+            !ReferenceEquals(_registry.GetEntity(_entity.EntityId), _entity)) return ConstructionTargetState.Invalid;
+        _site = _entity.GetComponent<ConstructionSite>();
+        _block = _entity.GetComponent<BlockObject>();
+        if (!_site || !_block || !_block.IsUnfinished) return ConstructionTargetState.NotApplicable;
+        if (!_site.Enabled || !_site.Inventory || !_site.Inventory.Enabled) return ConstructionTargetState.Invalid;
+        return _site.IsOn ? ConstructionTargetState.Ready : ConstructionTargetState.Blocked;
+      }
+      public ConstructionCompletion FinishNow() {
+        if (Inspect() != ConstructionTargetState.Ready) return ConstructionCompletion.Skipped;
+        var block = _block;
+        var observer = new CompletionObserver(block);
+        _events.Register(observer);
+        try {
+          _site.FinishNow();
+          // DeleteOnFinish sites may disappear after the native finished-state event.
+          if (observer.Finished || (block && block.IsFinished)) return ConstructionCompletion.Completed;
+          if (block && !_entity.Deleted && block.IsUnfinished) return ConstructionCompletion.Unfinished;
+          return ConstructionCompletion.Unconfirmed;
+        } finally { _events.Unregister(observer); }
       }
     }
-    private sealed class NativeSite : IConstructionSiteState {
-      private readonly ConstructionSite _site;
-      private readonly ConstructionSiteBuildTimeCalculator _time;
-      public NativeSite(ConstructionSite site, ConstructionSiteBuildTimeCalculator time) { _site = site; _time = time; }
-      public bool Unfinished => _site.GetComponent<BlockObject>().IsUnfinished;
-      public bool IsOn => _site.IsOn;
-      public bool MaterialsFull => _site.Inventory != null && _site.Inventory.IsFull;
-      public float TotalHours => _time.GetConstructionTimeInHours(_site);
-      public float ProgressHours => _site.BuildTimeProgressInHours;
-      public void IncreaseTime(float hours) => _site.IncreaseBuildTime(hours);
+
+    private sealed class CompletionObserver {
+      private readonly BlockObject _block;
+      public bool Finished { get; private set; }
+      public CompletionObserver(BlockObject block) { _block = block; }
+      [OnEvent]
+      public void OnFinished(EnteredFinishedStateEvent e) {
+        if (ReferenceEquals(e.BlockObject, _block)) Finished = true;
+      }
     }
   }
 }

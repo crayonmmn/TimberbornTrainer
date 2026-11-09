@@ -3,7 +3,7 @@
   "Version": "0.3.0.0",
   "Id": "TimberbornTrainer.Core",
   "MinimumGameVersion": "1.1.2.8",
-  "Description": "生存功能开发检查点：单仓库库存、饥饿与口渴维持均待实测；瞬间施工保留，免材料禁用。",
+  "Description": "开发测试版：库存编辑、科研及需求维持；新增一次性“立即完成所有建造”命令，尚待实机验收。",
   "RequiredMods": []
 }
 

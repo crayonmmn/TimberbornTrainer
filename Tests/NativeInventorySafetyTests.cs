@@ -34,7 +34,24 @@ namespace TimberbornTrainer.Tests {
         var e = new EntityComponent(); e.Add(new Timberborn.BlockSystem.BlockObject());
         e.Add(new Timberborn.Buildings.Building()); e.Add(new Inventories()); Entities.Values.Add(e); return e;
       }
+      public void MoveToNewDistrict() {
+        var district = Building().Add(new DistrictCenter());
+        Districts.Values.Add(district);
+        Owner.GetComponent<DistrictBuilding>().District = district;
+      }
       public InventoryIdentityReport Read() => Catalog.DiagnoseIdentity(Target, "Water");
+    }
+    private static void CheckDistrictChange() {
+      var f = new Fixture();
+      f.MoveToNewDistrict();
+      Check(f.Owner.GetComponent<DistrictCenter>() == null && f.Owner.GetComponent<Stockpile>() != null,
+        "变更地区后目标仍为普通仓库，不附加地区中心身份。");
+      Check(f.Read().Code == "DistrictChanged", "地区归属变化拒绝。");
+    }
+    public static string RunDistrictChangeTest() {
+      _checks = 0;
+      CheckDistrictChange();
+      return "地区归属变化目标测试：" + _checks + " 项断言通过。";
     }
     public static string Run() {
       _checks = 0;
@@ -65,8 +82,7 @@ namespace TimberbornTrainer.Tests {
       Check(f.Read().Code == "ExcludedOwner", "地区交汇点拒绝。");
       f = new Fixture(); f.Owner.GetComponent<DistrictBuilding>().District = null;
       Check(f.Read().Code == "DistrictUnknown", "未知地区不当作零或默认地区。");
-      f = new Fixture(); f.Owner.GetComponent<DistrictBuilding>().District = f.Owner.Add(new DistrictCenter());
-      Check(f.Read().Code == "DistrictChanged", "地区归属变化拒绝。");
+      CheckDistrictChange();
       f = new Fixture(); f.Goods.Values.Remove("Water"); Check(f.Read().Code == "ResourceUnknown", "资源失效拒绝。");
       f = new Fixture(); f.Catalog.Unload(); Check(f.Read().Code == "SceneUnavailable", "卸载后原引用不可诊断。");
       f = new Fixture(); string stale = f.Target; f.Catalog.Unload();

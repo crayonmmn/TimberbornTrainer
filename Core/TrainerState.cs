@@ -22,6 +22,8 @@ namespace TimberbornTrainer.Core {
       if (settings == null) throw new ArgumentNullException(nameof(settings));
       settings.Validate();
       _config = settings.Copy();
+      _config.InstantBuilding = false;
+      _config.FreeBuilding = false;
       Changed?.Invoke();
     }
 

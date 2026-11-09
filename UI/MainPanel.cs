@@ -23,9 +23,9 @@ namespace TimberbornTrainer.UI {
     private VisualElement _root, _panel, _scienceArea, _buildingArea;
     private Label _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
     private readonly Label[] _moduleStates = new Label[5];
-    private Toggle _enabled, _instant, _free;
+    private Toggle _enabled;
     private TextField _exchangeName, _target, _add, _subtract;
-    private ActionButton _setButton, _addButton, _subtractButton;
+    private ActionButton _setButton, _addButton, _subtractButton, _finishConstruction;
     private float _nextRefresh;
     private int _selected;
     private bool _loaded;
@@ -109,22 +109,15 @@ namespace TimberbornTrainer.UI {
       _scienceArea.Insert(0, _inventory);
       body.Add(_scienceArea);
       _buildingArea = new VisualElement();
-      _instant = new Toggle("瞬间施工（实验功能，尚未实机验证）");
-      _instant.labelElement.style.color = ControlStyles.Light;
-      _instant.RegisterValueChangedCallback(e => Run(() => {
-        var settings = _session.State.Settings;
-        settings.InstantBuilding = e.newValue;
-        _session.State.Apply(settings);
-      }, "瞬间施工设置已更新；材料必须齐全，仍保留原生完工校验。"));
-      _buildingArea.Add(_instant);
-      _free = new Toggle("建造无需材料（未接入，不生效）");
-      _free.labelElement.style.color = ControlStyles.Muted;
-      _free.SetEnabled(false);
-      _buildingArea.Add(_free);
+      _finishConstruction = new ActionButton("立即完成所有建造", () => {
+        _buildings.CompleteAll();
+        Refresh();
+      });
+      _buildingArea.Add(_finishConstruction);
       _constructionStats = ControlStyles.Text("");
       _buildingArea.Add(_constructionStats);
-      _buildingArea.Add(ControlStyles.Text("仅推进施工时间，不补材料、不直接标记完工。暂停、支撑、占位和完工阻挡仍由游戏检查。"));
-      _buildingArea.Add(ControlStyles.Text("免材料的四组合策略已进行模拟测试，实际材料适配尚未完成，不能据此认为四种组合已可用。"));
+      _buildingArea.Add(ControlStyles.Text("仅处理点击时的工地快照，调用原生完工接口；游戏暂停或运行时均可使用。建筑自身暂停、占位与原生阻挡仍然有效。"));
+      _buildingArea.Add(ControlStyles.Text("不干预仓库、携带材料或运输预留。受阻工地可能随后按原版流程完工；本功能尚待实机验证。"));
       body.Add(_buildingArea);
       _beaverArea = new VisualElement();
       _hunger = AddNeedToggle("锁定饥饿需求（实验功能）", true);
@@ -235,11 +228,9 @@ namespace TimberbornTrainer.UI {
       bool active = _session.State.EffectiveEnabled;
       _moduleStates[0].text = _resources.Science.RuntimeError ? "运行异常" : active ? "已启用" : "已禁用";
       _moduleStates[0].style.color = _resources.Science.RuntimeError ? ControlStyles.Error : active ? ControlStyles.Accent : ControlStyles.Muted;
-      _moduleStates[1].text = _buildings.RuntimeError ? "运行异常" : active && _session.State.Settings.InstantBuilding ? "已启用·待实测" : "已禁用·实验";
+      _moduleStates[1].text = _buildings.RuntimeError ? "结果需检查" : _buildings.Busy ? "执行中" : active ? "手动命令·待实测" : "已禁用";
       _moduleStates[1].style.color = _buildings.RuntimeError ? ControlStyles.Error : ControlStyles.Muted;
-      _instant.SetValueWithoutNotify(_session.State.Settings.InstantBuilding);
-      _instant.SetEnabled(_session.State.Compatible && !_buildings.RuntimeError);
-      _free.SetValueWithoutNotify(false);
+      _finishConstruction.Available(active && !_buildings.Busy);
       _hunger.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
       _thirst.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
       ControlStyles.ToggleState(_hunger, _session.State.Settings.LockHunger);
@@ -248,8 +239,7 @@ namespace TimberbornTrainer.UI {
         (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用·待实测" : "已禁用·实验";
       _needStatus.text = "本场景维持：饥饿 " + _beavers.HungerCount + "；口渴 " + _beavers.ThirstCount +
         "；需先恢复供给的需求 " + _beavers.UnsafeNeeds + "。新生与停用恢复待实测。";
-      _constructionStats.text = "本场景工时推进：" + _buildings.AdvancedSites +
-        "；调用后确认原生完工：" + _buildings.CompletedImmediately + "（不含随后解除阻挡的完工）";
+      _constructionStats.text = _buildings.LastResult?.Message ?? "尚未执行批量完工。";
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
       _setButton.Available(active);
       _addButton.Available(active);
@@ -260,7 +250,7 @@ namespace TimberbornTrainer.UI {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
       _moduleDescription.text = index == 0 ? "聚居地统计只读；仓储与地区中心自身库存可暂停编辑，施工和生产缓冲只读；科研保留。"
-        : index == 1 ? "瞬间施工核心已接入，待实测；免材料和生产倍率未实现。" : "未实现：" + Chinese.Descriptions[index];
+        : index == 1 ? "立即完成所有建造：单次按钮，不持续生效；旧建造开关已废弃。" : "未实现：" + Chinese.Descriptions[index];
       if (index == 2) _moduleDescription.text = "饥饿与口渴独立维持；实验功能，尚未完成实机验收。";
       _scienceArea.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;
       if (index == 0 && _root.panel != null && _panel.style.display.value != DisplayStyle.None) _inventory.Open();

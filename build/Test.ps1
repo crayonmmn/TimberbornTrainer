@@ -11,7 +11,7 @@ $references = @($references | Where-Object { [IO.Path]::GetFileName($_) -ne 'New
 $testRoot = Join-Path $projectRoot 'TestResults'
 [IO.Directory]::CreateDirectory($testRoot) | Out-Null
 $testDll = Join-Path $testRoot 'TimberbornTrainer.ConfigTests.dll'
-$sources = @('Core/Config.cs','Core/TrainerState.cs','Modules/ScienceCommands.cs','Modules/ConstructionRules.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
+$sources = @('Core/Config.cs','Core/TrainerState.cs','Modules/ScienceCommands.cs','Modules/ConstructionCommands.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
 Invoke-SourceCompilation -Sources $sources -References $references -Output $testDll -Name 'TimberbornTrainer.ConfigTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($jsonDll) | Out-Null
