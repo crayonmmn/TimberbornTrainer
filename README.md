@@ -3,6 +3,8 @@
 Windows 64 位 Steam Timberborn `1.1.2.8-ffc2de0-sw` 游戏内 Mod，版本 `0.3.0-inventory-dev`（通用库存编辑开发版，非正式发布）。
 使用官方加载器、Bindito、Unity UI Toolkit 和 C# / netstandard2.1，不使用 BepInEx 或 Harmony。
 
+自有代码采用 [MIT](LICENSE)；第三方参考的许可证与使用分类见 [来源审计记录](docs/第三方代码来源记录.md) 和 [第三方声明](THIRD_PARTY_NOTICES.md)。后续整合须遵循根目录 [AGENTS.md](AGENTS.md)，仓库代码许可不自动覆盖其美术资产或外部依赖。
+
 ## 当前功能
 
 - 科研点数：显示当前真实点数，设置目标、增加、减少；使用原生 ScienceService。
