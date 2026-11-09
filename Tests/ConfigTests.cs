@@ -76,6 +76,23 @@ namespace TimberbornTrainer.Tests {
       Check(!mismatch.EffectiveEnabled, "导入配置不得绕过环境检查。");
       Check(!new TrainerState(TrainerState.TargetVersion, false, "6000.5.11f1").Compatible, "错误平台应被拒绝。");
       Check(!new TrainerState(TrainerState.TargetVersion, true, "6000.5.12f1").Compatible, "错误引擎版本应被拒绝。");
+      // Isolated JSON configuration files, never a game save or the user's real configuration.
+      var legacyStore = new ConfigStore(Path.Combine(directory, "legacy-construction"));
+      legacyStore.Save(new Config { Enabled = true, InstantBuilding = true, FreeBuilding = true, LockHunger = true });
+      var legacy = legacyStore.Load();
+      Check(legacy.InstantBuilding && legacy.FreeBuilding && legacy.SchemaVersion == 1,
+        "历史建造字段可经实际JSON文件保存并加载，版本不变。");
+      var restored = new TrainerState(TrainerState.TargetVersion, true, "6000.5.11f1");
+      restored.Apply(legacy);
+      Check(!restored.Settings.InstantBuilding && !restored.Settings.FreeBuilding && restored.Settings.LockHunger,
+        "加载历史配置后应用时停用旧自动建造字段，保留无关偏好。");
+      legacyStore.Save(restored.Settings);
+      Check(!legacyStore.Load().InstantBuilding && !legacyStore.Load().FreeBuilding,
+        "有效配置重新保存后旧自动建造值保持关闭。");
+      legacyStore.Export("旧配置导入.json", legacy);
+      restored.Apply(legacyStore.Import("旧配置导入.json"));
+      Check(!restored.Settings.InstantBuilding && !restored.Settings.FreeBuilding && restored.Settings.LockHunger,
+        "导入旧true字段也只更新兼容配置，不能重新启用自动施工。");
       return "通过：" + _assertions + " 项断言（配置、状态、范围、文件保护和版本检查）。";
     }
   }

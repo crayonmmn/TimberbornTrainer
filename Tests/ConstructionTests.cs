@@ -11,8 +11,9 @@ namespace TimberbornTrainer.Tests {
       public ConstructionTargetState State = ConstructionTargetState.Ready;
       public ConstructionCompletion Outcome = ConstructionCompletion.Completed;
       public int Calls;
+      public Action OnInspect;
       public Action OnFinish;
-      public ConstructionTargetState Inspect() => State;
+      public ConstructionTargetState Inspect() { OnInspect?.Invoke(); return State; }
       public ConstructionCompletion FinishNow() { ++Calls; OnFinish?.Invoke(); return Outcome; }
     }
     public static string Run() {
@@ -84,6 +85,22 @@ namespace TimberbornTrainer.Tests {
       Check(result.Errors == 1 && !commands.Busy, "快照获取失败也释放保护。");
       result = commands.Execute(() => Array.Empty<IConstructionTarget>());
       Check(result.Message.Contains("没有符合条件") && result.Completed == 0, "无工地有明确提示。");
+
+      var once = new Site();
+      once.OnFinish = () => once.State = ConstructionTargetState.NotApplicable;
+      result = commands.Execute(() => new IConstructionTarget[] { once });
+      Check(result.Completed == 1 && once.Calls == 1, "原生适配器报告完工后本次确认一项。");
+      var repeat = commands.Execute(() => new IConstructionTarget[] { once });
+      var repeatAgain = commands.Execute(() => new IConstructionTarget[] { once });
+      Check(repeat.Completed == 0 && repeatAgain.Completed == 0 && once.Calls == 1 &&
+        repeat.Message.Contains("没有符合条件") && repeatAgain.Message.Contains("没有符合条件"),
+        "连续重复点击忽略已完成工地，统计不累计上次结果。");
+      var badInspection = new Site { OnInspect = () => throw new InvalidOperationException("inspection") };
+      var following = new Site();
+      result = commands.Execute(() => new IConstructionTarget[] { badInspection, following });
+      Check(badInspection.Calls == 0 && result.Errors == 1, "身份/组件检查抛异常时不调用完工接口。");
+      Check(following.Calls == 1 && result.Completed == 1 && result.Unconfirmed == 0 && !commands.Busy,
+        "检查异常不打断后续有效目标，分类统计及执行保护正常。");
 
       var legacy = ConfigStore.Parse("{\"SchemaVersion\":1,\"Enabled\":true,\"InstantBuilding\":true,\"FreeBuilding\":true,\"LockHunger\":true}");
       Check(legacy.InstantBuilding && legacy.FreeBuilding, "旧JSON字段仍可解析。");
