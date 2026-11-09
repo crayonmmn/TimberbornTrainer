@@ -12,6 +12,7 @@ namespace InventoryTestDoubles {
     public bool Destroyed, Enabled = true;
     public static implicit operator bool(Component component) => component != null && !component.Destroyed;
     public T GetComponent<T>() where T : class => (Owner ?? this as EntityComponent)?.Components.OfType<T>().FirstOrDefault();
+    public void GetComponents<T>(List<T> results) where T : class { results.AddRange((Owner ?? this as EntityComponent).Components.OfType<T>()); }
   }
 }
 namespace Timberborn.SingletonSystem {
@@ -63,6 +64,12 @@ namespace Timberborn.Goods {
   }
 }
 namespace Timberborn.InventorySystem {
+  public class SingleGoodAllower : InventoryTestDoubles.Component {
+    private Inventory _inventory;
+    public string AllowedGood; public bool HasAllowedGood => AllowedGood != null;
+    public bool IsBound => _inventory != null;
+    public void Initialize(Inventory inventory) { _inventory = inventory; }
+  }
   public class Inventories : InventoryTestDoubles.Component { public List<Inventory> AllInventories = new List<Inventory>(); }
   public class Inventory : InventoryTestDoubles.Component {
     public string ComponentName = "Stockpile"; public int Capacity = 100, Limit = 30, Incoming = 2, Reserved = 3, Reads;
@@ -108,6 +115,7 @@ namespace Timberborn.ResourceCountingSystem {
 namespace Timberborn.SelectionSystem {
   public class SelectableObject : InventoryTestDoubles.Component { }
   public class EntitySelectionService {
+    public SelectableObject SelectedObject;
     public EntityComponent Selected; public int Calls;
     public void SelectAndFocusOn(EntityComponent owner) { Selected = owner; ++Calls; }
   }

@@ -51,6 +51,7 @@ namespace TimberbornTrainer.Modules {
       return new EditableInventory(this, target, resource);
     }
     private bool Editable(NativeTarget target, string resource) {
+      if (target.RequireMapSelection && !MapTargetCurrent(target, resource)) return false;
       if (!_ready || target.Scene != _scene || !OwnerValid(target.Owner) || !target.Inventory
           || !_goods.HasGood(resource) || _goods.GetGood(resource) == null
           || !ReferenceEquals(_entities.GetEntity(target.EntityId), target.Owner)) return false;

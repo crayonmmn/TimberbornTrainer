@@ -10,7 +10,7 @@ namespace TimberbornTrainer.Core {
     public string GameVersion { get; }
     public string CompatibilityMessage { get; }
     public const string TargetVersion = "1.1.2.8-ffc2de0-sw";
-    public const string ModVersion = "0.3.0-inventory-dev";
+    public const string ModVersion = "0.3.0";
 
     public TrainerState(string version, bool windows64, string unityVersion) {
       GameVersion = version ?? "未知";

@@ -30,8 +30,13 @@ Invoke-SourceCompilation -Sources @($sources.FullName) -References $references -
 $package = Join-Path $projectRoot 'dist/TimberbornTrainer'
 [IO.Directory]::CreateDirectory($package) | Out-Null
 Copy-Item -LiteralPath $output -Destination (Join-Path $package 'TimberbornTrainer.dll')
-foreach ($name in @('manifest.json','README.md','LICENSE')) {
+foreach ($name in @('manifest.json','README.md','LICENSE','THIRD_PARTY_NOTICES.md')) {
   Copy-Item -LiteralPath (Join-Path $projectRoot $name) -Destination (Join-Path $package $name)
+}
+$packageDocs = Join-Path $package 'docs'
+[IO.Directory]::CreateDirectory($packageDocs) | Out-Null
+foreach ($name in @('使用说明.md','第三方代码来源记录.md')) {
+  Copy-Item -LiteralPath (Join-Path $projectRoot ('docs/' + $name)) -Destination (Join-Path $packageDocs $name)
 }
 Write-Output '构建成功。仅在项目 dist 目录生成待测试包，没有安装到游戏。'
 

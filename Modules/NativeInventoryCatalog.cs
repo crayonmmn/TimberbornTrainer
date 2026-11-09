@@ -34,6 +34,7 @@ namespace TimberbornTrainer.Modules {
       public Inventory Inventory;
       public string Scene, Component;
       public Guid EntityId;
+      public bool RequireMapSelection;
       public EntityComponent DistrictOwner;
     }
 
@@ -58,6 +59,7 @@ namespace TimberbornTrainer.Modules {
       _excludedObjects = 0; _excludedInventories = 0;
     }
     public void Unload() {
+      ReleaseSelectedWarehouse();
       _timing.Clear(); _observedTicks = 0;
       _ready = false; Clear(); _scene = null; _scanCount = 0;
       _entities = null; _districts = null; _goods = null; _counts = null; _selection = null;

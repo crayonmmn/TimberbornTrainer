@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Timberborn.Beavers;
 using Timberborn.Characters;
-using Timberborn.Effects;
+using System.Reflection;
 using Timberborn.EntitySystem;
 using Timberborn.NeedSystem;
 using Timberborn.SingletonSystem;
@@ -17,8 +17,8 @@ namespace TimberbornTrainer.Modules {
     private CharacterPopulation _population;
     private TrainerState _state;
     private bool _ready;
-    private readonly NeedLock<Beaver> _hunger = new NeedLock<Beaver>();
-    private readonly NeedLock<Beaver> _thirst = new NeedLock<Beaver>();
+    private readonly NeedMaintenance<Beaver> _hunger = new NeedMaintenance<Beaver>();
+    private readonly NeedMaintenance<Beaver> _thirst = new NeedMaintenance<Beaver>();
     public bool RuntimeError { get; private set; }
     public int HungerCount => _hunger.Count;
     public int ThirstCount => _thirst.Count;
@@ -63,14 +63,14 @@ namespace TimberbornTrainer.Modules {
           if (!TryGetReady(character, out beaver, out needs)) continue;
           present.Add(beaver);
           if (settings.LockHunger && needs.HasNeed("Hunger") &&
-              !_hunger.Maintain(beaver, new NativeNeed(needs, "Hunger"))) ++UnsafeNeeds;
+              !_hunger.Maintain(beaver, needs, () => new NativeNeed(needs, "Hunger"))) ++UnsafeNeeds;
           // A native effect can invoke callbacks; recheck before the second operation.
           if (!_ready || _state == null || !_state.EffectiveEnabled) return;
           settings = _state.Settings;
           var previousBeaver = beaver;
           if (!TryGetReady(character, out beaver, out needs)) { present.Remove(previousBeaver); continue; }
           if (settings.LockThirst && needs.HasNeed("Thirst") &&
-              !_thirst.Maintain(beaver, new NativeNeed(needs, "Thirst"))) ++UnsafeNeeds;
+              !_thirst.Maintain(beaver, needs, () => new NativeNeed(needs, "Thirst"))) ++UnsafeNeeds;
         }
         _hunger.Prune(present); _thirst.Prune(present);
       } catch (Exception e) {
@@ -95,15 +95,26 @@ namespace TimberbornTrainer.Modules {
       _hunger.Clear(); _thirst.Clear(); UnsafeNeeds = 0;
       _state = null; _population = null; _session = null;
     }
-    private sealed class NativeNeed : INeedValue {
+    private sealed class NativeNeed : IMaintainedNeed {
+      private static readonly MethodInfo GetNeed = typeof(NeedManager).GetMethod("GetNeed", BindingFlags.Instance | BindingFlags.NonPublic);
+      private static readonly FieldInfo Updating = typeof(Need).GetField("_updateEnabled", BindingFlags.Instance | BindingFlags.NonPublic);
       private readonly NeedManager _needs;
       private readonly string _id;
-      public NativeNeed(NeedManager needs, string id) { _needs = needs; _id = id; }
-      public float Read() => _needs.GetNeedPoints(_id);
-      public void AddEffect(float points) {
-        var effect = new InstantEffect(_id, points, 1);
-        _needs.ApplyEffect(in effect);
+      private readonly Need _need;
+      public NativeNeed(NeedManager needs, string id) {
+        if (GetNeed == null || Updating == null || Updating.FieldType != typeof(bool)) throw new InvalidOperationException("需求访问器不匹配。");
+        _needs = needs; _id = id; _need = (Need)GetNeed.Invoke(needs, new object[] { id });
       }
+      public object Owner => _needs;
+      public bool Valid => _needs && _need != null;
+      public bool Enabled => _need.Enabled;
+      public bool UpdateEnabled => (bool)Updating.GetValue(_need);
+      public float Points => _needs.GetNeedPoints(_id);
+      public float Maximum => _needs.GetNeedSpec(_id).MaximumValue;
+      public float Starting => _needs.GetNeedSpec(_id).StartingValue;
+      public void Reset() => _needs.ResetNeed(_id);
+      public void EnableUpdate() => _needs.EnableUpdate(_id);
+      public void DisableUpdate() => _needs.DisableUpdate(_id);
     }
   }
 }

@@ -20,7 +20,8 @@ namespace TimberbornTrainer.UI {
     private VisualElement _weatherArea;
     private Label _weatherStatus, _weatherResult;
     private ActionButton _weatherSet;
-    private InventoryPanel _inventory;
+    private MapInventoryPanel _inventory;
+    private readonly EventBus _events;
     private VisualElement _beaverArea;
     private Toggle _hunger, _thirst;
     private Label _needStatus;
@@ -36,12 +37,13 @@ namespace TimberbornTrainer.UI {
     private int _selected;
     private bool _loaded;
 
-    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories, NativeInventoryEditor editor, WeatherModule weather) {
+    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories, NativeInventoryEditor editor, WeatherModule weather, EventBus events) {
       _session = session; _layout = layout; _resources = resources; _buildings = buildings;
       _beavers = beavers;
       _inventories = inventories;
       _editor = editor;
       _weather = weather;
+      _events = events;
     }
 
     public void Load() {
@@ -53,6 +55,7 @@ namespace TimberbornTrainer.UI {
       _root.Add(new ActionButton("修改工具", () => {
         _panel.style.display = _panel.style.display.value == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
         RefreshScience();
+        if (_panel.style.display.value == DisplayStyle.None) _inventory.Close();
         if (_panel.style.display.value != DisplayStyle.None && _selected == 0 && !_sciencePage) _inventory.Open();
       }));
       _panel = new VisualElement { name = "TrainerPanel" };
@@ -119,7 +122,7 @@ namespace TimberbornTrainer.UI {
       _add = AddScienceRow("增加数量", "100", "增加点数", ScienceOperation.Add, out _addButton);
       _subtract = AddScienceRow("减少数量", "100", "减少点数", ScienceOperation.Subtract, out _subtractButton);
       _scienceArea.Add(ControlStyles.Text("仅接受零至十亿的整数；减少数量不能超过余额。"));
-      _inventory = new InventoryPanel(_inventories, _editor) { name = "TrainerInventoryArea" };
+      _inventory = new MapInventoryPanel(_inventories, _editor, _events) { name = "TrainerInventoryArea" };
       _resourceArea.Add(_inventory);
       _resourceArea.Add(_scienceArea);
       body.Add(_resourceArea);
@@ -138,7 +141,7 @@ namespace TimberbornTrainer.UI {
       _hunger = AddNeedToggle("锁定饥饿需求（实验功能）", true);
       _thirst = AddNeedToggle("锁定口渴需求（实验功能）", false);
       _beaverArea.Add(_hunger); _beaverArea.Add(_thirst);
-      _beaverArea.Add(ControlStyles.Text("维持启用时的需求下限，允许进食和饮水改善；关闭后停止补偿，原生需求继续更新。不会自动救治已为零或负值的需求，请先供应食物和水。"));
+      _beaverArea.Add(ControlStyles.Text("恢复饥饿/口渴至原版正常满值，并暂停对应需求的自然扣减；关闭后归还原更新状态。只作用于存活海狸，食物品种满足度等其他需求不锁定。恢复模拟后生效，已开始的进食/运输可能按原版完成。"));
       _needStatus = ControlStyles.Text("待实机验证，包括现有海狸、新生海狸与关闭后的恢复。");
       _beaverArea.Add(_needStatus);
       body.Add(_beaverArea);
@@ -194,7 +197,7 @@ namespace TimberbornTrainer.UI {
         _session.State.Apply(settings);
       }, "配置已读取，全局保持关闭；科研点数没有回滚。")));
       footer.Add(new ActionButton("恢复默认", () => Run(() => _session.State.RestoreDefaults(), "设置已恢复默认；已获得的科研点数不会撤销。")));
-      footer.Add(new ActionButton("关闭面板", () => _panel.style.display = DisplayStyle.None));
+      footer.Add(new ActionButton("关闭面板", () => { _inventory.Close(); _panel.style.display = DisplayStyle.None; }));
       _panel.Add(footer);
       _session.State.Changed += Refresh;
       _loaded = true;
@@ -242,6 +245,7 @@ namespace TimberbornTrainer.UI {
       if (!_loaded || _panel.style.display.value == DisplayStyle.None || Time.unscaledTime < _nextRefresh) return;
       _nextRefresh = Time.unscaledTime + .5f;
       RefreshScience();
+      if (_selected == 0 && !_sciencePage) _inventory.RefreshSelection();
     }
 
     private void RefreshScience() {
@@ -278,7 +282,7 @@ namespace TimberbornTrainer.UI {
       _moduleStates[2].text = _beavers.RuntimeError ? "运行异常" : active &&
         (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用·待实测" : "已禁用·实验";
       _needStatus.text = "本场景维持：饥饿 " + _beavers.HungerCount + "；口渴 " + _beavers.ThirstCount +
-        "；需先恢复供给的需求 " + _beavers.UnsafeNeeds + "。新生与停用恢复待实测。";
+        "；无法安全接管的需求 " + _beavers.UnsafeNeeds + "。修复后效果、消耗和停用恢复待实机复测。";
       _constructionStats.text = _buildings.LastResult?.Message ?? "尚未执行批量完工。";
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
       _setButton.Available(active);
@@ -289,11 +293,12 @@ namespace TimberbornTrainer.UI {
     private void SelectModule(int index) {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
-      _moduleDescription.text = index == 0 ? "聚居地统计只读；仓储与地区中心自身库存可暂停编辑，施工和生产缓冲只读；科研保留。"
+      _moduleDescription.text = index == 0 ? "在地图中选中仓库，自动读取其已配置物品；修改需暂停。科研点使用独立入口。"
         : index == 1 ? "立即完成所有建造：单次按钮，不持续生效；旧建造开关已废弃。" : "未实现：" + Chinese.Descriptions[index];
       if (index == 2) _moduleDescription.text = "饥饿与口渴独立维持；实验功能，尚未完成实机验收。";
       if (index == 3 || index == 4) _moduleDescription.text = "本周期灾害总时长编辑；天气切换、剩余时间直接设置及未来周期覆盖尚未实现。";
       _resourceArea.style.display = _resourceTabs.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;
+      if (index != 0) _inventory.Close();
       if (index == 0) SelectResourcePage(_sciencePage);
       _buildingArea.style.display = index == 1 ? DisplayStyle.Flex : DisplayStyle.None;
       _beaverArea.style.display = index == 2 ? DisplayStyle.Flex : DisplayStyle.None;
@@ -306,7 +311,7 @@ namespace TimberbornTrainer.UI {
       _scienceArea.style.display = science ? DisplayStyle.Flex : DisplayStyle.None;
       _inventory.style.display = science ? DisplayStyle.None : DisplayStyle.Flex;
       _body.scrollOffset = Vector2.zero;
-      if (science) RefreshScience();
+      if (science) { _inventory.Close(); RefreshScience(); }
       else if (_root.panel != null && _panel.style.display.value != DisplayStyle.None) _inventory.Open();
     }
 

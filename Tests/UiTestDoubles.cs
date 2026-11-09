@@ -72,8 +72,20 @@ namespace UnityEngine.UIElements {
   public class MouseUpEvent { } public class MouseCaptureOutEvent { } public class FocusInEvent { } public class FocusOutEvent { }
 }
 namespace Timberborn.SingletonSystem {
+  [AttributeUsage(AttributeTargets.Method)] public sealed class OnEventAttribute : Attribute { }
+  public sealed class EventBus {
+    private readonly HashSet<object> _listeners = new HashSet<object>(); public int Count => _listeners.Count;
+    public void Register(object o) { _listeners.Add(o); } public void Unregister(object o) { _listeners.Remove(o); }
+    public void Post(object e) {
+      foreach (var o in _listeners.ToArray()) foreach (var m in o.GetType().GetMethods())
+        if (Attribute.IsDefined(m, typeof(OnEventAttribute)) && m.GetParameters().Length == 1 && m.GetParameters()[0].ParameterType == e.GetType()) m.Invoke(o, new[] { e });
+    }
+  }
   public interface ILoadableSingleton { void Load(); } public interface IUnloadableSingleton { void Unload(); }
   public interface IUpdatableSingleton { void UpdateSingleton(); }
+}
+namespace Timberborn.SelectionSystem {
+  public sealed class SelectableObjectSelectedEvent { } public sealed class SelectableObjectUnselectedEvent { }
 }
 namespace Timberborn.UILayoutSystem {
   public sealed class UILayout {
@@ -103,7 +115,26 @@ namespace TimberbornTrainer.Modules {
     public int Read() => Amount; public int UnreservedStock() => Amount; public int FreeCapacity() => Capacity - Amount;
     public void Give(int amount) { Amount += amount; ++Writes; } public void Take(int amount) { Amount -= amount; ++Writes; }
   }
-  public sealed class NativeInventoryCatalog : IInventoryCatalog {
+  public sealed class NativeInventoryCatalog : IInventoryCatalog, IMapInventorySource {
+    public string SelectedId;
+    public readonly Dictionary<string, string> Configured = new Dictionary<string, string> { ["a"] = "ModFood", ["b"] = "Water" };
+    public int Releases;
+    public void Pick(string id, Timberborn.SingletonSystem.EventBus events) {
+      SelectedId = null; events.Post(new Timberborn.SelectionSystem.SelectableObjectUnselectedEvent());
+      SelectedId = id; if (id != null) events.Post(new Timberborn.SelectionSystem.SelectableObjectSelectedEvent());
+    }
+    public void ReleaseSelectedWarehouse() { ++Releases; }
+    public InventorySnapshot ReadSelectedWarehouse() {
+      ++Reads;
+      if (SelectedId == null) return new InventorySnapshot { Message = "请在地图中选择一个仓库。" };
+      if (!Configured.TryGetValue(SelectedId, out var good) || Stock(SelectedId)?.Alive != true) return new InventorySnapshot { Message = "不是可编辑仓库或目标失效。" };
+      if (good == null) return new InventorySnapshot { Message = "请先通过游戏原生界面配置物品。" };
+      var stock = Stock(SelectedId);
+      return new InventorySnapshot { Valid = true, Target = Items.First(t => t.Id == SelectedId), Resources = new[] {
+        new InventoryResource { GoodId = good, DisplayName = good, Registered = true, Allowed = true, Amount = stock.Amount,
+          AvailableStock = stock.Amount, FreeCapacity = stock.FreeCapacity(), TotalCapacity = stock.Capacity }
+      } };
+    }
     public InventoryScanReport LastScan { get; private set; }
     public int Reads; public readonly UiStock A = new UiStock(), B = new UiStock(), Center = new UiStock();
     public readonly InventoryTarget[] Items = {
@@ -137,10 +168,11 @@ namespace TimberbornTrainer.Modules {
     private readonly NativeInventoryCatalog _catalog; private readonly Func<bool> _enabled;
     public string LastTarget, LastResource;
     public NativeInventoryEditor(NativeInventoryCatalog catalog, Func<bool> enabled) { _catalog = catalog; _enabled = enabled; }
-    public string ReadOnlyReason(string target, string resource) => _catalog.Stock(target)?.Usable == true ? null : "只读或失效目标";
+    public string ReadOnlyReason(string target, string resource) => _catalog.SelectedId == target && _catalog.Stock(target)?.Usable == true &&
+      _catalog.Configured.TryGetValue(target, out var good) && good == resource ? null : "只读或失效目标";
     public InventoryEditResult Execute(string target, string resource, InventoryWriteOperation operation, string input) {
       LastTarget = target; LastResource = resource;
-      return InventoryEditCommands.Execute(() => _catalog.Stock(target), _enabled, operation, input);
+      return InventoryEditCommands.Execute(() => ReadOnlyReason(target, resource) == null ? _catalog.Stock(target) : null, _enabled, operation, input);
     }
   }
 }

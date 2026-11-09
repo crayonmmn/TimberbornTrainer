@@ -1,9 +1,9 @@
 {
   "Name": "海狸修改工具",
-  "Version": "0.3.0.0",
+  "Version": "0.3.0",
   "Id": "TimberbornTrainer.Core",
   "MinimumGameVersion": "1.1.2.8",
-  "Description": "开发测试版：库存编辑、科研及需求维持；新增一次性“立即完成所有建造”命令，尚待实机验收。",
+  "Description": "中文游戏内修改工具：地图选仓增减物品、科研点管理、一次性完成建造、基础饥饿与口渴维持；附实验性本周期灾害总时长编辑。",
   "RequiredMods": []
 }
 

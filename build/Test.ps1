@@ -24,19 +24,20 @@ $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.InventoryBrowserTests]::Run()
 }
 $lifecycleDll = Join-Path $testRoot 'TimberbornTrainer.BeaverLifecycleTests.dll'
-$lifecycleSources = @('Modules/BeaverModule.cs','Tests/BeaverLifecycleTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$lifecycleSources = @('Modules/BeaverModule.cs','Modules/NeedMaintenance.cs','Tests/BeaverLifecycleTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $lifecycleSources -References @($references + @($testDll)) -Output $lifecycleDll -Name 'TimberbornTrainer.BeaverLifecycleTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($lifecycleDll) | Out-Null
 [TimberbornTrainer.Tests.BeaverLifecycleTests]::Run()
 }
 $inventoryDll = Join-Path $testRoot 'TimberbornTrainer.InventoryCatalogTests.dll'
-$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Modules/NativeInventoryTiming.cs','Modules/InventoryTimingTrace.cs','Modules/NativeInventoryEditing.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventoryMapSelection.cs','Modules/MapInventorySource.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Modules/NativeInventoryTiming.cs','Modules/InventoryTimingTrace.cs','Modules/NativeInventoryEditing.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs','Tests/MapSelectionTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $inventorySources -References @($references + @($testDll)) -Output $inventoryDll -Name 'TimberbornTrainer.InventoryCatalogTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($inventoryDll) | Out-Null
 [TimberbornTrainer.Tests.InventoryCatalogTests]::Run()
 [TimberbornTrainer.Tests.NativeInventorySafetyTests]::Run()
+[TimberbornTrainer.Tests.MapSelectionTests]::Run()
 }
 $planDll = Join-Path $testRoot 'TimberbornTrainer.InventoryWritePlanTests.dll'
 $planSources = @('Modules/InventoryWritePlan.cs','Tests/InventoryWritePlanTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
@@ -63,7 +64,7 @@ if (!$CompileOnly) {
   [TimberbornTrainer.Tests.WeatherTests]::Run()
 }
 $uiDll = Join-Path $testRoot 'TimberbornTrainer.ResourceUiTests.dll'
-$uiSources = @('UI/MainPanel.cs','UI/InventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Modules/WeatherDurationCommands.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$uiSources = @('UI/MainPanel.cs','UI/InventoryPanel.cs','UI/MapInventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/MapInventorySource.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Modules/WeatherDurationCommands.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $uiSources -References @($references + @($testDll)) -Output $uiDll -Name 'TimberbornTrainer.ResourceUiTests'
 if (!$CompileOnly) {
   [Reflection.Assembly]::LoadFrom($uiDll) | Out-Null
