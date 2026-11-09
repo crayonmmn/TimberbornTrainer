@@ -100,6 +100,31 @@ namespace TimberbornTrainer.Tests {
       Check(trace.Stop().Contains("256/256"), "时序数量上限。");
       trace.Clear(); Check(!trace.Summary().Contains("Bounded"), "卸载清除场景时序。");
       trace.Record("AfterUnload", 0); Check(!trace.Summary().Contains("AfterUnload"), "卸载后不再记录。");
+      f = new Fixture();
+      var state = new TimberbornTrainer.Core.TrainerState("1.1.2.8-ffc2de0-sw", true, "6000.5.11f1"); state.SetEnabled(true);
+      var session = new TimberbornTrainer.Core.TrainerSession { State = state };
+      var speed = new Timberborn.TimeSystem.SpeedManager { CurrentSpeed = 0 };
+      UnityEngine.Time.timeScale = 0;
+      var editor = new NativeInventoryEditor(f.Catalog, session, speed);
+      var edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "5");
+      Check(edit.State == InventoryWriteState.Succeeded && f.Inventory.Values["Water"] == 15 && f.Inventory.WriteCalls == 1,
+        "实际适配器源码执行Give；已有物品/容量预留不要求归零（替身）。");
+      speed.CurrentSpeed = 1; edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
+      Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 1, "原生未暂停拒绝。");
+      speed.CurrentSpeed = 0; state.SetEnabled(false); edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
+      Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 1, "实时全局关闭拒绝。"); state.SetEnabled(true);
+      f.Inventory.AfterWrite = () => { throw new Exception("模拟通知异常"); };
+      edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Remove, "2");
+      Check(edit.State == InventoryWriteState.Indeterminate && edit.After == 13 && f.Inventory.WriteCalls == 2,
+        "真实适配器捕获变更后异常，回读且不重试（替身）。");
+      InventoryEditResult nested = null;
+      f.Inventory.AfterWrite = () => { nested = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1"); };
+      edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
+      Check(nested != null && nested.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 3, "同步事件重入被拒绝。");
+      f.Owner.Deleted = true; edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
+      Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 3, "删除旧对象零写调用。");
+      editor.Unload(); edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
+      Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 3, "执行器卸载拒绝旧命令。");
       return "原生库存身份／预留替身测试：" + _checks + " 项断言通过。不是实机证明。";
     }
   }

@@ -20,6 +20,9 @@ namespace Timberborn.SingletonSystem {
 }
 namespace Timberborn.TickSystem { public interface ITickableSingleton { void Tick(); } }
 namespace UnityEngine { public static class Debug { public static void Log(object message) { } } }
+namespace UnityEngine { public static class Time { public static float timeScale; } }
+namespace Timberborn.TimeSystem { public class SpeedManager { public float CurrentSpeed; } }
+namespace TimberbornTrainer.Core { public class TrainerSession { public TrainerState State; } }
 namespace Timberborn.EntitySystem {
   public class EntityComponent : InventoryTestDoubles.Component {
     public Guid EntityId = Guid.NewGuid(); public bool Initialized = true, Deleted;
@@ -48,7 +51,7 @@ namespace Timberborn.GameDistricts {
 namespace Timberborn.Goods {
   public struct StorableGood { public string GoodId; }
   public struct StorableGoodAmount { public StorableGood StorableGood; }
-  public struct GoodAmount { public string GoodId; public int Amount; }
+  public struct GoodAmount { public string GoodId; public int Amount; public GoodAmount(string id, int amount) { GoodId=id; Amount=amount; } }
   public class Localized { public string Value; }
   public class GoodSpec { public Localized DisplayName; }
   public interface IGoodService { IEnumerable<string> Goods { get; } bool HasGood(string id); GoodSpec GetGood(string id); }
@@ -76,7 +79,13 @@ namespace Timberborn.InventorySystem {
     public int TotalAmountInStock => Values.Values.Sum();
     public int UnreservedCapacity(string id) => Math.Max(0, Math.Min(Capacity - Values.Values.Sum(), Limit - AmountInStock(id)) - Incoming);
     public int LimitedAmount(string id) => Limit;
-    // No Give/Take members: production catalog cannot accidentally compile a write against these doubles.
+    public int WriteCalls; public Action AfterWrite;
+    public void GiveExisting(Timberborn.Goods.GoodAmount good) {
+      ++WriteCalls; Values[good.GoodId] = AmountInStock(good.GoodId) + good.Amount; AfterWrite?.Invoke();
+    }
+    public void TakeExisting(Timberborn.Goods.GoodAmount good) {
+      ++WriteCalls; Values[good.GoodId] = AmountInStock(good.GoodId) - good.Amount; AfterWrite?.Invoke();
+    }
     public void Allow(string id, int n = 10) {
       AllowedGoods.Add(new Timberborn.Goods.StorableGoodAmount { StorableGood = new Timberborn.Goods.StorableGood { GoodId = id } }); Values[id] = n;
     }

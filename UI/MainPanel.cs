@@ -13,6 +13,7 @@ namespace TimberbornTrainer.UI {
     private readonly UILayout _layout;
     private readonly ResourceModule _resources;
     private readonly NativeInventoryCatalog _inventories;
+    private readonly NativeInventoryEditor _editor;
     private readonly BuildingModule _buildings;
     private readonly BeaverModule _beavers;
     private InventoryPanel _inventory;
@@ -29,10 +30,11 @@ namespace TimberbornTrainer.UI {
     private int _selected;
     private bool _loaded;
 
-    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories) {
+    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories, NativeInventoryEditor editor) {
       _session = session; _layout = layout; _resources = resources; _buildings = buildings;
       _beavers = beavers;
       _inventories = inventories;
+      _editor = editor;
     }
 
     public void Load() {
@@ -103,7 +105,7 @@ namespace TimberbornTrainer.UI {
       _add = AddScienceRow("增加数量", "100", "增加点数", ScienceOperation.Add, out _addButton);
       _subtract = AddScienceRow("减少数量", "100", "减少点数", ScienceOperation.Subtract, out _subtractButton);
       _scienceArea.Add(ControlStyles.Text("仅接受零至十亿的整数；减少数量不能超过余额。"));
-      _inventory = new InventoryPanel(_inventories);
+      _inventory = new InventoryPanel(_inventories, _editor);
       _scienceArea.Insert(0, _inventory);
       body.Add(_scienceArea);
       _buildingArea = new VisualElement();
@@ -257,7 +259,7 @@ namespace TimberbornTrainer.UI {
     private void SelectModule(int index) {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
-      _moduleDescription.text = index == 0 ? "库存按需只读：聚居地统计、地区中心自身库存、建筑多库存；科研功能保留。"
+      _moduleDescription.text = index == 0 ? "聚居地统计只读；仓储与地区中心自身库存可暂停编辑，施工和生产缓冲只读；科研保留。"
         : index == 1 ? "瞬间施工核心已接入，待实测；免材料和生产倍率未实现。" : "未实现：" + Chinese.Descriptions[index];
       if (index == 2) _moduleDescription.text = "饥饿与口渴独立维持；实验功能，尚未完成实机验收。";
       _scienceArea.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;

@@ -19,7 +19,7 @@ using Timberborn.Stockpiles;
 
 namespace TimberbornTrainer.Modules {
   public sealed partial class NativeInventoryCatalog : IInventoryCatalog, IPostLoadableSingleton, IUnloadableSingleton {
-    private const string WriteBlocked = "本阶段仅开放读取，新增适配器写入尚未审核与授权。";
+    private const string WriteBlocked = "目录能力仅描述读取；库存编辑需独立命令执行时实时校验。";
     private EntityRegistry _entities;
     private DistrictCenterRegistry _districts;
     private IGoodService _goods;
@@ -251,7 +251,7 @@ namespace TimberbornTrainer.Modules {
       }
       if (!Valid(target)) { _targets.Remove(target.Description.Id); return new InventorySnapshot { Message = "读取期间库存失效，请重新扫描并选择。" }; }
       return new InventorySnapshot { Target = target.Description, Resources = rows.ToArray(), Valid = true,
-        Message = "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。所有写入未开放。" };
+        Message = "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。库存编辑必须暂停并实时校验。" };
     }
     private string GoodName(string id) => _goods.HasGood(id) ? _goods.GetGood(id).DisplayName.Value : "未注册资源（" + id + "）";
     public bool Focus(string targetId) {

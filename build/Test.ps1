@@ -31,7 +31,7 @@ if (!$CompileOnly) {
 [TimberbornTrainer.Tests.BeaverLifecycleTests]::Run()
 }
 $inventoryDll = Join-Path $testRoot 'TimberbornTrainer.InventoryCatalogTests.dll'
-$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Modules/NativeInventoryTiming.cs','Modules/InventoryTimingTrace.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$inventorySources = @('Modules/NativeInventoryCatalog.cs','Modules/NativeInventorySafety.cs','Modules/InventorySafetyReport.cs','Modules/NativeInventoryTiming.cs','Modules/InventoryTimingTrace.cs','Modules/NativeInventoryEditing.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Tests/InventoryCatalogTests.cs','Tests/NativeInventorySafetyTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $inventorySources -References @($references + @($testDll)) -Output $inventoryDll -Name 'TimberbornTrainer.InventoryCatalogTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($inventoryDll) | Out-Null
@@ -47,4 +47,11 @@ Invoke-SourceCompilation -Sources $planSources -References $planReferences -Outp
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($planDll) | Out-Null
 [TimberbornTrainer.Tests.InventoryWritePlanTests]::Run()
+}
+$editDll = Join-Path $testRoot 'TimberbornTrainer.InventoryEditTests.dll'
+$editSources = @('Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Tests/InventoryEditTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+Invoke-SourceCompilation -Sources $editSources -References @($references + @($testDll)) -Output $editDll -Name 'TimberbornTrainer.InventoryEditTests'
+if (!$CompileOnly) {
+  [Reflection.Assembly]::LoadFrom($editDll) | Out-Null
+  [TimberbornTrainer.Tests.InventoryEditTests]::Run()
 } else { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }

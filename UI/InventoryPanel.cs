@@ -12,15 +12,19 @@ namespace TimberbornTrainer.UI {
     private readonly ScrollView _buildings;
     private readonly Label _status, _target, _stock, _abilities, _scanStatus, _safety;
     private readonly IInventorySafetyDiagnostics _diagnostics;
+    private readonly IInventoryEditor _editor;
+    private readonly TextField _editAmount;
+    private readonly Label _editResult;
     private readonly ActionButton _openList, _scan;
     private InventoryTarget[] _ownerInventories = Array.Empty<InventoryTarget>();
     private string[] _resourceIds = Array.Empty<string>();
     private bool _painting, _disposed;
 
-    internal InventoryPanel(IInventoryCatalog catalog) {
+    internal InventoryPanel(IInventoryCatalog catalog, IInventoryEditor editor) {
       _browser = new InventoryBrowser(catalog);
       _diagnostics = catalog as IInventorySafetyDiagnostics;
-      Add(ControlStyles.Text("通用资源浏览（只读架构，待实机验证）"));
+      _editor = editor;
+      Add(ControlStyles.Text("通用库存管理（开发测试版）"));
       _source = Field("目标类型", new List<string> { "聚居地资源统计", "指定地区中心", "指定建筑库存" }); Add(_source);
       var actions = ControlStyles.Row();
       _scan = new ActionButton("扫描资源与库存", Scan); actions.Add(_scan);
@@ -34,6 +38,15 @@ namespace TimberbornTrainer.UI {
       _good = Field("资源", new List<string> { "请选择库存" }); Add(_good);
       _target = ControlStyles.Text(""); Add(_target);
       _stock = ControlStyles.Text(""); Add(_stock);
+      Add(ControlStyles.Text("库存编辑：请先手动暂停游戏并开启全局修改器。修改后保持暂停。"));
+      _editAmount = ControlStyles.Input("数量／目标值", "10"); Add(_editAmount);
+      var editActions = ControlStyles.Row();
+      editActions.Add(new ActionButton("增加", () => Edit(InventoryWriteOperation.Add)));
+      editActions.Add(new ActionButton("减少", () => Edit(InventoryWriteOperation.Remove)));
+      editActions.Add(new ActionButton("设置目标", () => Edit(InventoryWriteOperation.Set)));
+      editActions.Add(new ActionButton("清空资源", () => Edit(InventoryWriteOperation.Clear)));
+      Add(editActions);
+      _editResult = ControlStyles.Text("尚未执行库存命令。超出原生未预留范围将整单拒绝，不会自动缩减数量。"); Add(_editResult);
       _abilities = ControlStyles.Text("增加、减少、设置：未开放，等待下一阶段独立审核。"); Add(_abilities);
       var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); Add(diagnose);
       diagnose.Available(_diagnostics != null);
@@ -160,12 +173,27 @@ namespace TimberbornTrainer.UI {
       _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : "尚未选择有效库存。";
       _target.tooltip = valid ? snapshot.Target.Id : "";
       var abilities = valid ? snapshot.Target.Abilities : new InventoryAbilities(false, "尚未选择有效目标。");
-      _abilities.text = "读取：" + Ability(abilities.Read) + "\n增加：" + Ability(abilities.Add)
-        + "\n减少：" + Ability(abilities.Subtract) + "\n设置：" + Ability(abilities.Set);
+      _abilities.text = "读取：" + Ability(abilities.Read)
+        + "\n编辑：仅已完工普通仓储或地区中心自身输出；每次执行前实时检查角色、原引用、资源、暂停、全局开关和预留。";
       RenderResource();
     }
     private static string Ability(InventoryAbility ability) => (ability.Available ? "可用；" : "不可用；") + ability.Reason;
     private static string Number(long? value) => value.HasValue ? value.Value.ToString() : "不适用／未知";
+    private void Edit(InventoryWriteOperation operation) {
+      if (_disposed || _editor == null) return;
+      string target = _browser.Snapshot?.Target?.Id, resource = _browser.SelectedGoodId;
+      if (target == null || resource == null) { _editResult.text = "请先选择有效库存和资源。"; return; }
+      var result = _editor.Execute(target, resource, operation, _editAmount.value);
+      string feedback = "资源：" + resource + "；状态：" + EditState(result.State) + "\n" + result.Message
+        + "\n修改前：" + (result.Before?.ToString() ?? "未知") + "；请求变化：" + result.RequestedDelta
+        + "；真实回读：" + (result.After?.ToString() ?? "未知")
+        + "\n本次可增加上限：" + (result.MaximumAdd?.ToString() ?? "未知")
+        + "；可减少上限：" + (result.MaximumRemove?.ToString() ?? "未知");
+      _browser.Select(target); RenderTargets();
+      _editResult.text = feedback;
+    }
+    private static string EditState(InventoryWriteState state) => state == InventoryWriteState.Succeeded ? "调用返回且回读一致"
+      : state == InventoryWriteState.NoOp ? "无需修改" : state == InventoryWriteState.Indeterminate ? "结果未确认，请勿重复执行" : "拒绝，未执行";
     private void Diagnose() {
       if (_disposed || _diagnostics == null) return;
       var snapshot = _browser.Snapshot;
@@ -180,7 +208,7 @@ namespace TimberbornTrainer.UI {
         + "\n地区标识：" + report.Identity.District + "；资源：" + report.Identity.Resource
         + "\n物品预留：" + Number(report.ReservedStock) + "；全部容量预留：" + Number(report.ReservedCapacity)
         + "\n资源域 " + report.Rows.Count + " 种；观察自洽：" + (report.ObservationConsistent ? "是" : "否")
-        + "；完整性／同步性：未证明\n候选写入资格：关闭；全部写入保持禁用。"
+        + "；完整性／同步性：未证明\n本诊断不授权写入；编辑命令另行执行实时单资源校验。"
         + "\n" + report.Identity.Reason + "\n" + report.Reason;
       _safety.tooltip = string.Join("\n", report.Rows.Select(r => r.Resource + "：实际 " + r.Amount
         + "，未预留 " + r.Unreserved + "，物品预留 " + r.Reserved + "，容量预留 " + r.CapacityReservation
@@ -188,6 +216,7 @@ namespace TimberbornTrainer.UI {
         + "，声明允许 " + (r.Declared ? "是" : "否") + "，已注册 " + (r.Registered ? "是" : "否")));
     }
     private void RenderResource() {
+      _editResult.text = "尚无当前选择的新操作结果；请确认目标和资源后执行。";
       _safety.text = "安全诊断未读取或选择已变化；请主动读取。历史观察不能授权操作。";
       _safety.tooltip = "";
       var snapshot = _browser.Snapshot;

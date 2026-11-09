@@ -59,7 +59,7 @@ namespace TimberbornTrainer.Modules {
         if (!Valid(target) || after.Code != identity.Code || after.District != identity.District || after.Scene != identity.Scene) consistent = false;
         return new InventorySafetyReport(after, rows, consistent, consistent ? reserved : (long?)null,
           consistent ? reservedCapacity : (long?)null,
-          "仅为按需观察；公共资源域与两次读数不能证明原子性或隐藏预留完整性。安全执行点未证明，候选写入资格关闭。"
+          "仅为按需观察，不授予执行权限。编辑命令按本次授权独立检查原生单资源未预留量，不要求全仓零预留。"
           + (!consistent ? " 本次读数不自洽或发生变化，预留总量未知。" : ""));
       } catch (Exception) {
         return new InventorySafetyReport(identity, null, false, null, null, "原生预留读取异常，状态未知；没有修改库存或自动重试。");
