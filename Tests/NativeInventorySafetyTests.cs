@@ -141,6 +141,21 @@ namespace TimberbornTrainer.Tests {
       Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 3, "删除旧对象零写调用。");
       editor.Unload(); edit = editor.Execute(f.Target, "Water", InventoryWriteOperation.Add, "1");
       Check(edit.State == InventoryWriteState.Rejected && f.Inventory.WriteCalls == 3, "执行器卸载拒绝旧命令。");
+      Check(editor.ReadOnlyReason(f.Target, "Water") != null, "卸载后的UI编辑预览明确不可用。");
+      f = new Fixture(); editor = new NativeInventoryEditor(f.Catalog, session, speed);
+      scans = f.Entities.Enumerations;
+      Check(editor.ReadOnlyReason(f.Target, "Water") == null && f.Inventory.WriteCalls == 0 && f.Entities.Enumerations == scans,
+        "实际编辑预览仅验证当前目标，不修改库存或全场扫描。");
+      f.Inventory.Allow("ModFood", 5);
+      edit = editor.Execute(f.Target, "ModFood", InventoryWriteOperation.Add, "4");
+      Check(edit.State == InventoryWriteState.Succeeded && f.Inventory.Values["ModFood"] == 9 && f.Inventory.Values["Water"] == 10,
+        "原生注册的模拟Mod资源增量进入指定库存/资源，不混入其他资源。");
+      edit = editor.Execute(f.Target, "ModFood", InventoryWriteOperation.Remove, "2");
+      Check(edit.State == InventoryWriteState.Succeeded && f.Inventory.Values["ModFood"] == 7,
+        "相同实际适配器支持已注册模拟Mod资源减少，仍遵守原生未预留量。");
+      f.Owner.Add(new Timberborn.ConstructionSites.ConstructionSite { Inventory = f.Inventory });
+      Check(editor.ReadOnlyReason(f.Target, "Water") != null && f.Inventory.WriteCalls == 2,
+        "冲突施工绑定在UI预览中保持只读，不扩大写入范围。");
       return "原生库存身份／预留替身测试：" + _checks + " 项断言通过。不是实机证明。";
     }
   }

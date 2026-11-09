@@ -147,6 +147,8 @@ namespace TimberbornTrainer.Modules {
       string type = labeled ? labeled.DisplayName : "未命名建筑类型";
       string name = center ? center.DistrictName : named ? named.EntityName : type;
       if (string.IsNullOrEmpty(name)) name = type;
+      var membership = owner.GetComponent<DistrictBuilding>();
+      if (!center && membership && membership.District) name = membership.District.DistrictName + " · " + name;
       name += "（" + owner.GetComponent<BlockObject>().Coordinates + "）";
       var all = inventories.AllInventories.ToArray();
       var names = all.Where(i => i && !string.IsNullOrEmpty(i.ComponentName)).GroupBy(i => i.ComponentName)
@@ -174,7 +176,8 @@ namespace TimberbornTrainer.Modules {
     }
     private static string Purpose(EntityComponent owner, Inventory inventory) {
       var construction = owner.GetComponent<ConstructionSite>();
-      if (construction && construction.Inventory == inventory) return "施工材料库存";
+      if (construction && construction.Inventory == inventory) return owner.GetComponent<BlockObject>().IsFinished
+        ? "施工材料库存（建筑已完工）" : "施工材料库存";
       var stockpile = owner.GetComponent<Stockpile>();
       if (stockpile && stockpile.Inventory == inventory) return "仓储库存";
       var output = owner.GetComponent<SimpleOutputInventory>();
@@ -237,23 +240,34 @@ namespace TimberbornTrainer.Modules {
       var rows = new List<InventoryResource>();
       foreach (string id in ids) {
         long amount = inventory.AmountInStock(id);
-        bool storable = allowed.Contains(id) && registered.Contains(id);
+        bool registeredNow = _goods.HasGood(id) && _goods.GetGood(id) != null;
+        bool inDirectory = registered.Contains(id);
+        bool storable = allowed.Contains(id) && registeredNow && inDirectory;
         rows.Add(new InventoryResource {
-          GoodId = id, DisplayName = GoodName(id), Registered = registered.Contains(id), Allowed = storable,
+          GoodId = id, DisplayName = GoodName(id), Registered = registeredNow, Allowed = storable,
           Amount = amount, AvailableStock = inventory.UnreservedAmountInStock(id),
           ReservedStock = amount - inventory.UnreservedAmountInStock(id), ReservedCapacity = inventory.ReservedCapacity(id),
           FreeCapacity = storable ? inventory.UnreservedCapacity(id) : (long?)null,
           ResourceLimit = storable ? inventory.LimitedAmount(id) : (long?)null, TotalCapacity = inventory.Capacity,
           CapacityState = inventory.Capacity == int.MaxValue ? CapacityState.Unknown : CapacityState.Finite,
-          Details = !storable ? "未注册或未声明允许的残留资源，仅显示实际库存。"
+          Details = !registeredNow ? "资源标识未在当前原生注册表中确认，只读显示已有库存，不代表名称匹配失败。"
+            : !inDirectory ? "资源已注册，但尚未纳入本次扫描目录；请重新扫描。"
+            : !allowed.Contains(id) ? "资源已注册，但当前库存未声明允许存储；仅显示残留数量，不能增加。"
             : "资源限额和可用空位按原生接口读取；总容量与资源限额共同约束。整数上限不代表已确认无限容量。"
         });
       }
       if (!Valid(target)) { _targets.Remove(target.Description.Id); return new InventorySnapshot { Message = "读取期间库存失效，请重新扫描并选择。" }; }
       return new InventorySnapshot { Target = target.Description, Resources = rows.ToArray(), Valid = true,
-        Message = "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。库存编辑必须暂停并实时校验。" };
+        Message = rows.Count == 0 ? "已发现真实库存，但没有声明允许物品且无现存物资；无成本或已停用施工库存可能如此，不是遗漏资源名称。"
+          : "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。库存编辑必须暂停并实时校验。" };
     }
-    private string GoodName(string id) => _goods.HasGood(id) ? _goods.GetGood(id).DisplayName.Value : "未注册资源（" + id + "）";
+    private string GoodName(string id) {
+      try {
+        if (!_goods.HasGood(id) || _goods.GetGood(id) == null) return "未注册资源（" + id + "）";
+        string name = _goods.GetGood(id).DisplayName.Value;
+        return string.IsNullOrWhiteSpace(name) ? "显示名称缺失（" + id + "）" : name;
+      } catch { return "显示名称读取失败（" + id + "）"; }
+    }
     public bool Focus(string targetId) {
       NativeTarget target;
       if (!_ready || targetId == null || !_targets.TryGetValue(targetId, out target)) return false;

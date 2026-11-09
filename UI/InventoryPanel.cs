@@ -10,47 +10,71 @@ namespace TimberbornTrainer.UI {
     private readonly InventoryBrowser _browser;
     private readonly DropdownField _source, _inventory, _good;
     private readonly ScrollView _buildings;
+    private readonly VisualElement _selector;
+    private readonly ActionButton _changeTarget, _focusTarget;
     private readonly Label _status, _target, _stock, _abilities, _scanStatus, _safety;
     private readonly IInventorySafetyDiagnostics _diagnostics;
     private readonly IInventoryEditor _editor;
     private readonly TextField _editAmount;
     private readonly Label _editResult;
     private readonly ActionButton _openList, _scan;
+    private readonly ActionButton _add, _remove, _set, _clear;
     private InventoryTarget[] _ownerInventories = Array.Empty<InventoryTarget>();
     private string[] _resourceIds = Array.Empty<string>();
     private bool _painting, _disposed;
+    private bool _commandsEnabled, _targetEditable, _resourceAllowed;
 
     internal InventoryPanel(IInventoryCatalog catalog, IInventoryEditor editor) {
       _browser = new InventoryBrowser(catalog);
       _diagnostics = catalog as IInventorySafetyDiagnostics;
       _editor = editor;
       Add(ControlStyles.Text("通用库存管理（开发测试版）"));
-      _source = Field("目标类型", new List<string> { "聚居地资源统计", "指定地区中心", "指定建筑库存" }); Add(_source);
+      _target = ControlStyles.Text("尚未选择有效库存，请点击更换目标。");
+      _target.name = "InventorySelectionSummary"; Add(_target);
+      var selectionActions = ControlStyles.Row();
+      _changeTarget = new ActionButton("更换目标", () => SetSelectionExpanded(_selector.style.display.value == DisplayStyle.None)) { name = "InventoryChangeTarget" };
+      selectionActions.Add(_changeTarget);
+      _focusTarget = new ActionButton("定位目标", () => {
+        var target = _browser.Snapshot?.Target;
+        bool focused = target != null && _browser.Focus(target.Id);
+        if (!focused) RenderTargets();
+        _status.text = focused ? "已请求原生镜头定位和高亮。" : _browser.Message;
+      });
+      selectionActions.Add(_focusTarget);
+      selectionActions.Add(new ActionButton("主动刷新", RefreshSelected)); Add(selectionActions);
+      _selector = new VisualElement { name = "InventorySelector" }; Add(_selector);
+      _selector.style.display = DisplayStyle.None;
+      _source = Field("目标类型", new List<string> { "聚居地资源统计（只读）", "指定地区中心", "指定建筑库存" });
+      _source.name = "InventorySource"; _selector.Add(_source);
       var actions = ControlStyles.Row();
-      _scan = new ActionButton("扫描资源与库存", Scan); actions.Add(_scan);
+      _scan = new ActionButton("扫描资源与库存", Scan) { name = "InventoryScan" }; actions.Add(_scan);
       _openList = new ActionButton("打开建筑列表", Discover); actions.Add(_openList);
-      actions.Add(new ActionButton("主动刷新", RefreshSelected)); Add(actions);
-      _scanStatus = ControlStyles.Text("尚未扫描；打开列表不会自动扫描场景。"); Add(_scanStatus);
+      _selector.Add(actions);
+      _scanStatus = ControlStyles.Text("尚未扫描；打开列表不会自动扫描场景。"); _selector.Add(_scanStatus);
       _status = ControlStyles.Text("打开页面后按需读取，不后台扫描库存。"); Add(_status);
       _status.style.minHeight = 50;
-      _buildings = new ScrollView(); _buildings.style.maxHeight = 110; Add(_buildings);
-      _inventory = Field("具体库存", new List<string> { "请选择目标" }); Add(_inventory);
+      _buildings = new ScrollView(); _buildings.style.maxHeight = 110; _selector.Add(_buildings);
+      _inventory = Field("具体库存", new List<string> { "请选择目标" }); _selector.Add(_inventory);
+      _inventory.name = "InventoryTarget";
       _good = Field("资源", new List<string> { "请选择库存" }); Add(_good);
-      _target = ControlStyles.Text(""); Add(_target);
+      _good.name = "InventoryResource";
+      _good.tooltip = "仅列出本库存声明支持及实际残留的资源；未列出不等于游戏未注册。缺少显示名称时保留原生ID。";
       _stock = ControlStyles.Text(""); Add(_stock);
       Add(ControlStyles.Text("库存编辑：请先手动暂停游戏并开启全局修改器。修改后保持暂停。"));
-      _editAmount = ControlStyles.Input("数量／目标值", "10"); Add(_editAmount);
+      _editAmount = ControlStyles.Input("数量／目标值", "10"); _editAmount.name = "InventoryAmount"; Add(_editAmount);
       var editActions = ControlStyles.Row();
-      editActions.Add(new ActionButton("增加", () => Edit(InventoryWriteOperation.Add)));
-      editActions.Add(new ActionButton("减少", () => Edit(InventoryWriteOperation.Remove)));
-      editActions.Add(new ActionButton("设置目标", () => Edit(InventoryWriteOperation.Set)));
-      editActions.Add(new ActionButton("清空资源", () => Edit(InventoryWriteOperation.Clear)));
+      _add = new ActionButton("增加", () => Edit(InventoryWriteOperation.Add)) { name = "InventoryAdd" }; editActions.Add(_add);
+      _remove = new ActionButton("减少", () => Edit(InventoryWriteOperation.Remove)) { name = "InventoryRemove" }; editActions.Add(_remove);
+      _set = new ActionButton("设置目标", () => Edit(InventoryWriteOperation.Set)) { name = "InventorySet" }; editActions.Add(_set);
+      _clear = new ActionButton("清空资源", () => Edit(InventoryWriteOperation.Clear)) { name = "InventoryClear" }; editActions.Add(_clear);
       Add(editActions);
       _editResult = ControlStyles.Text("尚未执行库存命令。超出原生未预留范围将整单拒绝，不会自动缩减数量。"); Add(_editResult);
-      _abilities = ControlStyles.Text("增加、减少、设置：未开放，等待下一阶段独立审核。"); Add(_abilities);
-      var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); Add(diagnose);
+      _editResult.name = "InventoryEditResult"; _stock.name = "InventoryStock";
+      _abilities = ControlStyles.Text("请先选择真实库存；聚居地统计只读。"); Add(_abilities);
+      var diagnostics = new Foldout { text = "开发诊断（只读，可选）", value = false }; Add(diagnostics);
+      var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); diagnostics.Add(diagnose);
       diagnose.Available(_diagnostics != null);
-      _safety = ControlStyles.Text("安全诊断未读取；仅主动点击时检查选中库存，不授予写入权限。"); Add(_safety);
+      _safety = ControlStyles.Text("安全诊断未读取；仅主动点击时检查选中库存，不授予写入权限。"); diagnostics.Add(_safety);
       var timing = catalog as IInventoryTimingDiagnostics;
       var traceRow = ControlStyles.Row();
       traceRow.Add(new ActionButton("开始时序记录（10秒上限）", () => { timing?.StartTiming(); _safety.text = "只读时序记录已开始；无库存操作，最多256条。"; }));
@@ -59,15 +83,17 @@ namespace TimberbornTrainer.UI {
         _safety.text = string.Join("\n", text.Split('\n').Take(8)) + "\n完整记录已写入游戏日志；不证明安全执行点。";
         _safety.tooltip = text;
       }));
-      Add(traceRow);
+      diagnostics.Add(traceRow);
       _source.RegisterValueChangedCallback(_ => {
         if (_painting || _disposed) return;
         _browser.Switch((InventorySource)_source.index); RenderTargets();
+        if (_browser.Source == InventorySource.Settlement && _browser.Snapshot?.Valid == true) SetSelectionExpanded(false);
       });
       _inventory.RegisterValueChangedCallback(_ => {
         if (_painting || _disposed) return;
         if (_inventory.index >= 0 && _inventory.index < _ownerInventories.Length) {
           _browser.Select(_ownerInventories[_inventory.index].Id); RenderSnapshot();
+          if (_browser.Snapshot?.Valid == true) SetSelectionExpanded(false);
         }
       });
       _good.RegisterValueChangedCallback(_ => {
@@ -76,6 +102,8 @@ namespace TimberbornTrainer.UI {
         RenderResource();
       });
       _openList.SetEnabled(false);
+      _focusTarget.Available(false);
+      PaintEditButtons();
     }
     private static DropdownField Field(string label, List<string> choices) {
       var field = new DropdownField(label, choices, 0);
@@ -86,8 +114,14 @@ namespace TimberbornTrainer.UI {
       return field;
     }
     internal void Open() {
-      if (_disposed || _browser.Opened) return;
+      if (_disposed) return;
+      SetSelectionExpanded(false);
+      if (_browser.Opened) return;
       _browser.Switch(InventorySource.Settlement); RenderTargets();
+    }
+    private void SetSelectionExpanded(bool expanded) {
+      _selector.style.display = expanded ? DisplayStyle.Flex : DisplayStyle.None;
+      _changeTarget.text = expanded ? "收起选择器" : "更换目标";
     }
     private void Discover() {
       if (_disposed) return;
@@ -115,6 +149,7 @@ namespace TimberbornTrainer.UI {
         var owner = grouping.First();
         var button = new ActionButton(owner.OwnerName + " · " + owner.BuildingType + " · " + grouping.Count() + " 个库存",
           () => SelectOwner(owner.OwnerId));
+        button.name = "InventoryOwner:" + owner.OwnerId;
         button.style.whiteSpace = WhiteSpace.Normal;
         button.tooltip = "单击选择；双击使用游戏原生定位与高亮。";
         button.RegisterCallback<ClickEvent>(e => {
@@ -140,6 +175,7 @@ namespace TimberbornTrainer.UI {
       _painting = false;
       if (read && _ownerInventories.Length > 0) _browser.Select(_ownerInventories[Math.Max(0, selected)].Id);
       RenderSnapshot();
+      if (read && _browser.Snapshot?.Valid == true) SetSelectionExpanded(false);
     }
     private void RenderSnapshot() {
       _status.text = _browser.Message;
@@ -170,8 +206,9 @@ namespace TimberbornTrainer.UI {
       }
       _good.SetValueWithoutNotify(_good.choices[Math.Max(0, goodIndex)]); _good.SetEnabled(valid && snapshot.Resources.Length > 0);
       _painting = false;
-      _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : "尚未选择有效库存。";
+      _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : "当前没有有效目标，请点击更换目标；失效原因见下方提示。";
       _target.tooltip = valid ? snapshot.Target.Id : "";
+      _focusTarget.Available(valid && snapshot.Target.Source != InventorySource.Settlement);
       var abilities = valid ? snapshot.Target.Abilities : new InventoryAbilities(false, "尚未选择有效目标。");
       _abilities.text = "读取：" + Ability(abilities.Read)
         + "\n编辑：仅已完工普通仓储或地区中心自身输出；每次执行前实时检查角色、原引用、资源、暂停、全局开关和预留。";
@@ -180,7 +217,7 @@ namespace TimberbornTrainer.UI {
     private static string Ability(InventoryAbility ability) => (ability.Available ? "可用；" : "不可用；") + ability.Reason;
     private static string Number(long? value) => value.HasValue ? value.Value.ToString() : "不适用／未知";
     private void Edit(InventoryWriteOperation operation) {
-      if (_disposed || _editor == null) return;
+      if (_disposed || _editor == null || !_commandsEnabled) return;
       string target = _browser.Snapshot?.Target?.Id, resource = _browser.SelectedGoodId;
       if (target == null || resource == null) { _editResult.text = "请先选择有效库存和资源。"; return; }
       var result = _editor.Execute(target, resource, operation, _editAmount.value);
@@ -221,8 +258,22 @@ namespace TimberbornTrainer.UI {
       _safety.tooltip = "";
       var snapshot = _browser.Snapshot;
       var row = snapshot?.Resources.FirstOrDefault(r => r.GoodId == _browser.SelectedGoodId);
-      if (snapshot == null || !snapshot.Valid || row == null) { _stock.text = ""; return; }
+      _targetEditable = !_disposed && _editor != null && snapshot != null && snapshot.Valid &&
+        snapshot.Target.Source != InventorySource.Settlement && row != null && row.Registered;
+      _resourceAllowed = row != null && row.Allowed;
+      string reason = null;
+      if (_targetEditable && _editor is IInventoryEditPreview preview) {
+        reason = preview.ReadOnlyReason(snapshot.Target.Id, row.GoodId);
+        _targetEditable = reason == null;
+      }
+      PaintEditButtons();
+      if (reason != null) _abilities.text = "仅可读取：" + reason;
+      if (snapshot == null || !snapshot.Valid || row == null) {
+        _stock.text = snapshot?.Valid == true ? "已找到库存，但当前没有可显示资源；可能没有声明允许物品且没有存货。\n" + snapshot.Message : "";
+        return;
+      }
       bool aggregate = snapshot.Target.Source == InventorySource.Settlement;
+      if (aggregate) _abilities.text = "聚居地显示多个库存的统计，没有可直接写入的统一库存。请选择地区中心或建筑的真实库存。科研点请使用上方“科研点管理”。";
       string capacity = row.CapacityState == CapacityState.Aggregate ? "统计汇总，不作为统一存储容量"
         : row.CapacityState == CapacityState.Unlimited ? "原生明确无限"
         : row.CapacityState == CapacityState.Finite ? "有限，总容量 " + Number(row.TotalCapacity)
@@ -234,6 +285,15 @@ namespace TimberbornTrainer.UI {
         + "；当前资源限额：" + Number(row.ResourceLimit)
         + (aggregate ? "" : "\n注册资源：" + (row.Registered ? "是" : "否") + "；库存声明支持：" + (row.Allowed ? "是" : "否"))
         + "\n" + row.Details;
+    }
+    internal void SetCommandsEnabled(bool enabled) {
+      _commandsEnabled = enabled;
+      PaintEditButtons(); // No inventory reads in the general UI refresh loop.
+    }
+    private void PaintEditButtons() {
+      bool enabled = !_disposed && _commandsEnabled && _targetEditable;
+      _add.Available(enabled && _resourceAllowed);
+      _remove.Available(enabled); _set.Available(enabled); _clear.Available(enabled);
     }
     internal void Unload() {
       if (_disposed) return;

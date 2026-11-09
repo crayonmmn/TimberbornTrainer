@@ -25,6 +25,7 @@ namespace TimberbornTrainer.Core {
       Bind<NativeInventoryEditor>().AsSingleton();
       Bind<BuildingModule>().AsSingleton();
       Bind<BeaverModule>().AsSingleton();
+      Bind<WeatherModule>().AsSingleton();
       Bind<MainPanel>().AsSingleton();
     }
   }

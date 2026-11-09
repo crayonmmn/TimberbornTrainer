@@ -150,7 +150,61 @@ namespace TimberbornTrainer.Tests {
       second.Unload(); Check(Subscriptions(secondState) == 0, "异常后仍能卸载清理订阅。");
       var missing = new BeaverModule(new TrainerSession(), new CharacterPopulation()); missing.PostLoad(); missing.Tick(); missing.Unload();
       Check(missing.RuntimeError, "状态未就绪只停用模块，不提前访问实体。");
+      CheckIndependentNeeds();
+      CheckMembershipChanges();
       return "通过：" + _checks + " 项实际 BeaverModule 生命周期断言（游戏接口替代实现，非实机验收）。";
+    }
+    private static void CheckIndependentNeeds() {
+      for (int mask = 0; mask < 4; ++mask) {
+        var state = State();
+        var config = new Config { Enabled = true, LockHunger = (mask & 1) != 0, LockThirst = (mask & 2) != 0 };
+        state.Apply(config);
+        var population = new CharacterPopulation(); var beaver = Character(); population.NativeCharacters.Add(beaver);
+        var needs = beaver.GetComponent<NeedManager>(); needs.Values["Sleep"] = .33f;
+        var module = new BeaverModule(new TrainerSession { State = state }, population); module.PostLoad(); module.Tick();
+        Check(module.HungerCount == (config.LockHunger ? 1 : 0) && module.ThirstCount == (config.LockThirst ? 1 : 0), "四种维生组合独立捕获真实业务基线。");
+        needs.Values["Hunger"] = .2f; needs.Values["Thirst"] = .25f; module.Tick();
+        Check(Math.Abs(needs.Values["Hunger"] - (config.LockHunger ? .6f : .2f)) < .0001f &&
+          Math.Abs(needs.Values["Thirst"] - (config.LockThirst ? .8f : .25f)) < .0001f,
+          "真实BeaverModule仅补偿已启用需求，关闭项保留模拟原生下降。");
+        Check(needs.Values["Sleep"] == .33f && needs.Writes == (config.LockHunger ? 1 : 0) + (config.LockThirst ? 1 : 0),
+          "效果次数与独立开关一致，不影响其他需求。");
+        config.LockHunger = config.LockThirst = false; state.Apply(config);
+        int writes = needs.Writes, reads = needs.Reads; needs.Values["Hunger"] = needs.Values["Thirst"] = .1f; module.Tick();
+        Check(needs.Writes == writes && needs.Reads == reads && module.HungerCount == 0 && module.ThirstCount == 0,
+          "关闭后不继续读写需求，也不保留永久锁定基线。");
+        config.LockHunger = config.LockThirst = true; state.Apply(config); module.PostLoad(); module.Tick();
+        needs.Values["Hunger"] = needs.Values["Thirst"] = .05f; module.Tick();
+        Check(Math.Abs(needs.Values["Hunger"] - .1f) < .0001f && Math.Abs(needs.Values["Thirst"] - .1f) < .0001f && Subscriptions(state) == 1,
+          "反复启停只订阅一次，重启捕获新的较低基线，不恢复旧值。");
+        module.Unload(); Check(Subscriptions(state) == 0, "每种开关组合结束都清理事件订阅。");
+      }
+    }
+    private static void CheckMembershipChanges() {
+      var state = State(); var population = new CharacterPopulation(); var adult = Character(); population.NativeCharacters.Add(adult);
+      var module = new BeaverModule(new TrainerSession { State = state }, population); module.PostLoad(); module.Tick();
+      var joined = Character(); var needs = joined.GetComponent<NeedManager>();
+      needs.Values["Hunger"] = .45f; needs.Values["Thirst"] = .55f; population.NativeCharacters.Add(joined); module.Tick();
+      needs.Values["Hunger"] = needs.Values["Thirst"] = .1f; module.Tick();
+      Check(module.HungerCount == 2 && Math.Abs(needs.Values["Hunger"] - .45f) < .0001f && Math.Abs(needs.Values["Thirst"] - .55f) < .0001f,
+        "新加入的初始化完成海狸自动捕获自身基线并真正获得补偿。");
+      adult.Alive = false; int deadReads = adult.GetComponent<NeedManager>().Reads; module.Tick();
+      Check(module.HungerCount == 1 && module.ThirstCount == 1 && adult.GetComponent<NeedManager>().Reads == deadReads,
+        "死亡对象不再访问需求，清理两种基线。");
+      population.NativeCharacters.Remove(joined); module.Tick();
+      Check(module.HungerCount == 0 && module.ThirstCount == 0, "仍有引用但离开原生人口集合也释放基线。");
+      needs.Values["Hunger"] = .3f; population.NativeCharacters.Add(joined); module.Tick();
+      needs.Values["Hunger"] = .1f; module.Tick();
+      Check(Math.Abs(needs.Values["Hunger"] - .3f) < .0001f, "移除后重新加入不沿用旧基线。");
+      needs.Values["Hunger"] = needs.Values["Thirst"] = .1f;
+      needs.Callback = () => state.Apply(new Config { Enabled = true, LockHunger = false, LockThirst = true });
+      module.Tick(); needs.Callback = null;
+      Check(!module.RuntimeError && module.HungerCount == 0 && module.ThirstCount == 1,
+        "效果回调独立关闭饥饿时，不重建已关闭基线，口渴仍保持。");
+      int writes = needs.Writes; needs.Values["Hunger"] = .05f; needs.Values["Thirst"] = .2f; module.Tick();
+      Check(needs.Values["Hunger"] == .05f && Math.Abs(needs.Values["Thirst"] - .55f) < .0001f && needs.Writes == writes + 1 && Subscriptions(state) == 1,
+        "后续Tick只维持口渴，没有重复订阅或饥饿残留处理。");
+      module.Unload(); Check(Subscriptions(state) == 0, "人口变化与回调测试后仍可正常卸载。");
     }
   }
 }

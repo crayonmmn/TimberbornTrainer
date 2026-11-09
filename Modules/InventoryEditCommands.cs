@@ -16,6 +16,10 @@ namespace TimberbornTrainer.Modules {
   public interface IInventoryEditor {
     InventoryEditResult Execute(string targetId, string resource, InventoryWriteOperation operation, string input);
   }
+  // UI hint only. Every command still performs its own live identity/capacity/reservation checks.
+  public interface IInventoryEditPreview {
+    string ReadOnlyReason(string targetId, string resource);
+  }
 
   // Whole-request validation. No clipping, retries, reverse writes, UI cache or global-zero-reservation policy.
   public static class InventoryEditCommands {

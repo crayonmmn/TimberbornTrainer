@@ -54,4 +54,18 @@ Invoke-SourceCompilation -Sources $editSources -References @($references + @($te
 if (!$CompileOnly) {
   [Reflection.Assembly]::LoadFrom($editDll) | Out-Null
   [TimberbornTrainer.Tests.InventoryEditTests]::Run()
+}
+$weatherDll = Join-Path $testRoot 'TimberbornTrainer.WeatherTests.dll'
+$weatherSources = @('Modules/WeatherModule.cs','Modules/WeatherDurationCommands.cs','Tests/WeatherTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+Invoke-SourceCompilation -Sources $weatherSources -References @($references + @($testDll)) -Output $weatherDll -Name 'TimberbornTrainer.WeatherTests'
+if (!$CompileOnly) {
+  [Reflection.Assembly]::LoadFrom($weatherDll) | Out-Null
+  [TimberbornTrainer.Tests.WeatherTests]::Run()
+}
+$uiDll = Join-Path $testRoot 'TimberbornTrainer.ResourceUiTests.dll'
+$uiSources = @('UI/MainPanel.cs','UI/InventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Modules/WeatherDurationCommands.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+Invoke-SourceCompilation -Sources $uiSources -References @($references + @($testDll)) -Output $uiDll -Name 'TimberbornTrainer.ResourceUiTests'
+if (!$CompileOnly) {
+  [Reflection.Assembly]::LoadFrom($uiDll) | Out-Null
+  [TimberbornTrainer.Tests.ResourceUiTests]::Run((Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))))
 } else { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }

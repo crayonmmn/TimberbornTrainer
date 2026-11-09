@@ -11,7 +11,7 @@ using Timberborn.SingletonSystem;
 using TimberbornTrainer.Core;
 
 namespace TimberbornTrainer.Modules {
-  public sealed class NativeInventoryEditor : IInventoryEditor, IUnloadableSingleton {
+  public sealed class NativeInventoryEditor : IInventoryEditor, IInventoryEditPreview, IUnloadableSingleton {
     private readonly NativeInventoryCatalog _catalog;
     private readonly TrainerSession _session;
     private readonly SpeedManager _speed;
@@ -21,6 +21,14 @@ namespace TimberbornTrainer.Modules {
     }
     private bool Permitted() => !_unloaded && _session.State != null && _session.State.EffectiveEnabled
       && _speed.CurrentSpeed == 0 && UnityEngine.Time.timeScale == 0;
+    public string ReadOnlyReason(string targetId, string resource) {
+      if (_unloaded) return "场景已卸载，请重新进入聚居地。";
+      try {
+        var stock = _catalog.ResolveForEdit(targetId, resource);
+        return stock != null && stock.Usable ? null :
+          "当前目标已失效或不属于可编辑库存。仅支持已完工普通仓储、地区中心自身输出；施工、生产、未知及尚未适配的自定义库存只读。";
+      } catch { return "无法确认库存用途、资源或对象身份，请主动刷新。"; }
+    }
     public InventoryEditResult Execute(string targetId, string resource, InventoryWriteOperation operation, string input) {
       if (_busy) return new InventoryEditResult { Message = "已有库存命令执行中，拒绝重入。" };
       _busy = true;

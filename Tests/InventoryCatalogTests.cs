@@ -56,10 +56,10 @@ namespace Timberborn.Goods {
   public class GoodSpec { public Localized DisplayName; }
   public interface IGoodService { IEnumerable<string> Goods { get; } bool HasGood(string id); GoodSpec GetGood(string id); }
   public class TestGoods : IGoodService {
-    public readonly List<string> Values = new List<string> { "Water", "ModFood" }; public int Reads; public bool Fail;
+    public readonly List<string> Values = new List<string> { "Water", "ModFood" }; public int Reads; public bool Fail, MissingName;
     public IEnumerable<string> Goods { get { ++Reads; if (Fail) throw new Exception(); return Values; } }
     public bool HasGood(string id) => Values.Contains(id);
-    public GoodSpec GetGood(string id) => new GoodSpec { DisplayName = new Localized { Value = "本地化" + id } };
+    public GoodSpec GetGood(string id) => new GoodSpec { DisplayName = new Localized { Value = MissingName ? "" : "本地化" + id } };
   }
 }
 namespace Timberborn.InventorySystem {
@@ -245,7 +245,47 @@ namespace TimberbornTrainer.Tests {
       Check(next.LastScan == null && next.Discover(InventorySource.Building).Targets.Length == 0, "新场景必须重新主动扫描。");
       Check(next.Scan().Sequence == 1 && !next.Discover(InventorySource.Building).Targets.Any(t => t.Id == oldId), "新场景计数及身份重新建立。");
       next.Unload();
+      CheckConstructionInventories();
       return "原生库存身份、扫描及缓存（实际适配器＋替身）：" + _checks + " 项断言通过。";
+    }
+    private static void CheckConstructionInventories() {
+      var entities = new EntityRegistry(); var goods = new Timberborn.Goods.TestGoods(); goods.Values.Add("Log");
+      var road = Building(entities); var house = Building(entities); var largeHouse = Building(entities);
+      var empty = road.Add(new Inventory { ComponentName = "ConstructionSite", Capacity = 0, Limit = 0, Enabled = false });
+      road.GetComponent<Inventories>().AllInventories.Add(empty);
+      road.Add(new Timberborn.ConstructionSites.ConstructionSite { Inventory = empty });
+      var wood = Stock(house, "ConstructionSite", "Log"); wood.Capacity = wood.Limit = 12; wood.Enabled = false; wood.Values["Log"] = 0;
+      house.Add(new Timberborn.ConstructionSites.ConstructionSite { Inventory = wood });
+      var large = Stock(largeHouse, "ConstructionSite", "Log"); large.Capacity = large.Limit = 70; large.Enabled = false;
+      largeHouse.Add(new Timberborn.ConstructionSites.ConstructionSite { Inventory = large });
+      var catalog = new NativeInventoryCatalog(entities, new Timberborn.GameDistricts.DistrictCenterRegistry(), goods,
+        new Timberborn.ResourceCountingSystem.ResourceCountingService(), new Timberborn.SelectionSystem.EntitySelectionService());
+      catalog.PostLoad(); var scan = catalog.Scan(); var targets = catalog.Discover(InventorySource.Building).Targets;
+      Check(scan.RecognizedBuildings == 3 && targets.Length == 3, "道路/住宅式原生建筑的施工库存按组件发现，不要求Stockpile组件或建筑白名单。");
+      var path = targets.Single(t => t.OwnerId.EndsWith(road.EntityId.ToString()));
+      var snapshot = catalog.Read(path.Id);
+      Check(snapshot.Valid && snapshot.Resources.Length == 0 && snapshot.Message.Contains("真实库存"), "无成本施工库存可读且明确为空，不冒称资源名称不存在。");
+      var lodge = targets.Single(t => t.OwnerId.EndsWith(house.EntityId.ToString())); snapshot = catalog.Read(lodge.Id);
+      Check(snapshot.Valid && snapshot.Target.Purpose.Contains("建筑已完工") && snapshot.Target.Purpose.Contains("已停用") &&
+        snapshot.Resources.Single().ResourceLimit == 12, "住宅式施工库存保留用途、真实启停及材料限额。");
+      var editor = new NativeInventoryEditor(catalog, new TimberbornTrainer.Core.TrainerSession(), new Timberborn.TimeSystem.SpeedManager());
+      Check(editor.ReadOnlyReason(lodge.Id, "Log") != null && wood.WriteCalls == 0, "发现施工库存不开放编辑。");
+      goods.MissingName = true; snapshot = catalog.Read(lodge.Id);
+      Check(snapshot.Resources.Single().Registered && snapshot.Resources.Single().DisplayName.Contains("显示名称缺失") &&
+        snapshot.Resources.Single().DisplayName.Contains("Log"), "已注册资源缺中文名时回退原生ID，不当作未发现。");
+      goods.MissingName = false; wood.Values["ModFood"] = 2; wood.Values["Ghost"] = 1; snapshot = catalog.Read(lodge.Id);
+      Check(snapshot.Resources.Single(r => r.GoodId == "ModFood").Registered &&
+        !snapshot.Resources.Single(r => r.GoodId == "ModFood").Allowed && snapshot.Resources.Single(r => r.GoodId == "ModFood").Details.Contains("未声明允许"),
+        "已注册但当前库存不支持的残留，与未注册资源分开解释。");
+      Check(!snapshot.Resources.Single(r => r.GoodId == "Ghost").Registered &&
+        snapshot.Resources.Single(r => r.GoodId == "Ghost").Details.Contains("注册表"), "无法在注册表确认的残留仅观察。");
+      goods.Values.Add("LaterGood"); wood.Allow("LaterGood", 0); snapshot = catalog.Read(lodge.Id);
+      Check(snapshot.Resources.Single(r => r.GoodId == "LaterGood").Registered &&
+        !snapshot.Resources.Single(r => r.GoodId == "LaterGood").Allowed && snapshot.Resources.Single(r => r.GoodId == "LaterGood").Details.Contains("重新扫描"),
+        "扫描后新增的原生资源区分注册成功与尚未入目录，不静默扫描。");
+      catalog.Scan(); catalog.Discover(InventorySource.Building); snapshot = catalog.Read(lodge.Id);
+      Check(snapshot.Resources.Single(r => r.GoodId == "LaterGood").Allowed && wood.WriteCalls == 0, "主动重扫纳入新资源，所有调查保持零写入。");
+      catalog.Unload();
     }
     private static string GetScene(InventoryTarget target) {
       int colon = target.Id.IndexOf(':'); int length = int.Parse(target.Id.Substring(0, colon)); return target.Id.Substring(colon + 1, length);
