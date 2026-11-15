@@ -6,7 +6,9 @@
 
 The English and Simplified Chinese packages have identical features, safety conditions and Mod ID (`TimberbornTrainer.Core`). **Install only one.** There is no in-game language switch. To change language, exit the game, back up the installed trainer folder and replace it with the other package. Never mix their DLLs or install them side by side.
 
-The bilingual packages are local release preparation, not an already published update. Existing public v0.3.0 downloads predate these packages.
+**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
+
+Get the English or Chinese v0.4.0 ZIP from [GitHub Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.4.0). Historical v0.3.0 remains separate.
 
 ## Requirements and installation
 

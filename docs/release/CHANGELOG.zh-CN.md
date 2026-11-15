@@ -1,8 +1,8 @@
-# v0.4.0 更新日志（发布准备）
+# v0.4.0 更新日志
 
 [English](CHANGELOG.en.md)
 
-本轮只提交、推送开发分支与准备安装包，不创建v0.4.0标签或GitHub Release。
+**测试说明：** 英文版已通过自动化构建、回归及本地化测试，但尚未经过人工游戏内实机验收，仍可能存在界面或兼容性问题。如发现问题，欢迎通过 GitHub Issues 反馈。
 
 ## 本版内容
 
@@ -28,7 +28,7 @@
 
 已验证环境为Steam Timberborn **1.1.2.8-ffc2de0-sw**、Unity **6000.5.11f1**、Mono、Windows64位。其他版本未经验证，不保证功能兼容；也不承诺所有第三方Mod兼容。物品名称继续来自游戏本地化，原生ID不变。
 
-## 准备中的安装包
+## 安装包
 
 - `TimberbornTrainer-v0.4.0-en-win64.zip`
 - `TimberbornTrainer-v0.4.0-zh-CN-win64.zip`

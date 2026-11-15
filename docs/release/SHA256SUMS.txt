@@ -1,2 +1,2 @@
-fc68222be0deb55799decd5162bcb73c7da391e820a699af68e742ed43c051fb  TimberbornTrainer-v0.4.0-en-win64.zip
-48a7b1d4fde78371e56ff9b6b188b4d9f0c697c32916cfdbea0953af342929c0  TimberbornTrainer-v0.4.0-zh-CN-win64.zip
+3c4eaeaafb156f6ec158096a68d2d376ff3df5492d3c3b10d741d23e233473f8  TimberbornTrainer-v0.4.0-en-win64.zip
+8eb4cdb704f8e0574e7fd24bbedc7d33e2a9138fc6f0fccbcc1363770680d092  TimberbornTrainer-v0.4.0-zh-CN-win64.zip

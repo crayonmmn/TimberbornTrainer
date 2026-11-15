@@ -2,22 +2,26 @@
 
 [简体中文](README.zh-CN.md) · [English guide](docs/Usage.en.md) · [中文使用说明](docs/使用说明.md)
 
-**Prepared version: v0.4.0 — not released yet.**
+**Version: v0.4.0**
+
+**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
+
+**测试说明：** 英文版已通过自动化构建、回归及本地化测试，但尚未经过人工游戏内实机验收，仍可能存在界面或兼容性问题。如发现问题，欢迎通过 GitHub Issues 反馈。
 
 A lightweight in-game control panel for **Resource Management**, **Building & Production**, and **Beaver Management**, using Timberborn's official mod loader.
 
 **Verified environment:** Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows 64-bit.
 
-> v0.4.0 bilingual packages are prepared on this development branch. No new bilingual release has been published. The existing public v0.3.0 assets predate this work.
+The Chinese core functionality has prior user in-game validation. The English package is released with automated validation only; see the testing notice above. Historical v0.3.0 remains available separately.
 
 ## Downloads and installation
 
 [Public releases](https://github.com/crayonmmn/TimberbornTrainer/releases) · [Latest published release](https://github.com/crayonmmn/TimberbornTrainer/releases/latest)
 
-| Language | Prepared package filename | Availability |
+| Language | Installation package | Verification |
 | --- | --- | --- |
-| English | `TimberbornTrainer-v0.4.0-en-win64.zip` | Prepared; Release pending |
-| 简体中文 | `TimberbornTrainer-v0.4.0-zh-CN-win64.zip` | Prepared; Release pending |
+| English | [TimberbornTrainer-v0.4.0-en-win64.zip](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-en-win64.zip) | Automated tests; no manual in-game acceptance |
+| 简体中文 | [TimberbornTrainer-v0.4.0-zh-CN-win64.zip](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-zh-CN-win64.zip) | Prior user in-game validation |
 
 **Install ONE language package only. Both use Mod ID `TimberbornTrainer.Core`; they must not be installed together.** They share the same code and behavior. There is no in-game language selector. To change language, exit the game and replace the installed package.
 
@@ -54,7 +58,7 @@ The Chinese core functionality has user in-game validation. The English package 
 
 ## Screenshots
 
-Only real game screenshots will be used. No suitable screenshots are currently included. The [capture checklist](docs/screenshots/README.md) lists the images needed before publication; no generated or fabricated screenshots are used.
+Only real game screenshots will be used. No suitable screenshots are currently included. The [capture checklist](docs/screenshots/README.md) lists optional real screenshots that can be supplied later; no generated or fabricated screenshots are used.
 
 ## Building
 
@@ -73,7 +77,7 @@ Run `./build/Test-Localization.ps1 -GamePath '<Timberborn installation>'` after 
 
 The build uses existing Roslyn assemblies and the verified local game's references, without shipping game DLLs. Technical records remain under `docs/`.
 
-[v0.4.0 English changelog](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/CHANGELOG.en.md) · [中文更新日志](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/CHANGELOG.zh-CN.md) · [SHA256](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/SHA256SUMS.txt)
+[v0.4.0 English changelog](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.en.md) · [中文更新日志](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.zh-CN.md) · [SHA256](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/SHA256SUMS.txt)
 
 ## License, AI development and maintenance
 

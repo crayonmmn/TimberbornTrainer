@@ -1,8 +1,8 @@
-# v0.4.0 changelog (release preparation)
+# v0.4.0 changelog
 
 [简体中文](CHANGELOG.zh-CN.md)
 
-No v0.4.0 tag or GitHub Release has been created. These files and packages are prepared for review on the development branch.
+**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
 
 ## Included
 
@@ -28,7 +28,7 @@ Only the three modules above remain in the current UI. Removed standalone weathe
 
 Verified baseline: Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows 64-bit. Other versions are unverified, not necessarily compatible. No universal third-party Mod compatibility is promised. Native item names follow the game's localization; IDs are unchanged.
 
-## Prepared downloads
+## Downloads
 
 - `TimberbornTrainer-v0.4.0-en-win64.zip`
 - `TimberbornTrainer-v0.4.0-zh-CN-win64.zip`

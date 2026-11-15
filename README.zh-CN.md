@@ -2,15 +2,19 @@
 
 [English](README.md) | 简体中文
 
-**本分支正在准备中英文两个独立安装包，尚未公开发布。两个包使用相同Mod ID，只能安装其中一个。现有GitHub v0.3.0附件不代表本次双语构建。**
+**中英文为两个独立安装包，使用相同Mod ID，只能安装其中一个。历史v0.3.0版本另行保留。**
 
-**准备版本：v0.4.0** · Windows 64位 · Steam Timberborn **1.1.2.8-ffc2de0-sw**
+**版本：v0.4.0** · Windows 64位 · Steam Timberborn **1.1.2.8-ffc2de0-sw**
+
+**测试说明：** 英文版已通过自动化构建、回归及本地化测试，但尚未经过人工游戏内实机验收，仍可能存在界面或兼容性问题。如发现问题，欢迎通过 GitHub Issues 反馈。
+
+**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
 
 在游戏内使用中文面板管理仓库物品、科研点数、建造和基础生存需求。使用游戏官方 Mod 加载器，无需 BepInEx、Harmony、其他 Mod 或独立修改器。
 
 ## 下载与安装
 
-[下载正式版](https://github.com/crayonmmn/TimberbornTrainer/releases/latest) · [项目仓库](https://github.com/crayonmmn/TimberbornTrainer)。现有公开版下载 `TimberbornTrainer-v0.3.0-win64.zip`；本地准备的新包为 `TimberbornTrainer-v0.4.0-zh-CN-win64.zip` 和 `TimberbornTrainer-v0.4.0-en-win64.zip`，请仅选一个安装。不要把旧公开版当作双语新版。不要把 GitHub 自动生成的 Source code 压缩包当作安装包。
+[v0.4.0 Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.4.0) · [中文版ZIP](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-zh-CN-win64.zip) · [English ZIP](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-en-win64.zip) · [SHA256SUMS.txt](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/SHA256SUMS.txt)。仅选一个语言包安装，不要混用DLL；GitHub自动生成的Source code压缩包不是安装包。
 
 1. 退出游戏，备份重要存档。
 2. 将 ZIP 中的 `TimberbornTrainer` 文件夹解压到**实际“文档”目录**下的 `Timberborn/Mods/`。文档目录可能由 OneDrive 重定向。
@@ -41,11 +45,11 @@
 
 仅保留资源管理、建造与生产、海狸管理三个模块。生产倍率已取消，高倍时间加速暂缓。页面“建造与生产”名称不表示提供生产倍率。原生物流边界、特殊工地、复杂预留和大型/多地区场景的覆盖有限。修改的物品、点数和建筑数据可能随正常保存写入存档；全局关闭、恢复默认及卸载都不是撤销操作，请先备份。
 
-## v0.4.0发布准备
+## v0.4.0验证说明
 
-[中文更新日志](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/CHANGELOG.zh-CN.md) · [English changelog](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/CHANGELOG.en.md) · [SHA256](https://github.com/crayonmmn/TimberbornTrainer/blob/feature/natural-water-control/docs/release/SHA256SUMS.txt)
+[中文更新日志](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.zh-CN.md) · [English changelog](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.en.md) · [SHA256](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/SHA256SUMS.txt)
 
-中文版此前已由用户完成核心功能实机测试；英文版尚未独立实机验证。两种语言各704项回归和Release构建通过，不代表英文实机通过。尚未创建v0.4.0标签或Release。
+中文版此前已由用户完成核心功能实机测试；英文版尚未独立实机验证。两种语言各704项回归和Release构建通过，不代表英文实机通过。英文版以自动化验收发布，不宣称人工实机通过。
 
 ## 历史验证状态
 
