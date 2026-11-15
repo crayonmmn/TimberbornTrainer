@@ -156,6 +156,43 @@ namespace TimberbornTrainer.Tests {
       f.Owner.Add(new Timberborn.ConstructionSites.ConstructionSite { Inventory = f.Inventory });
       Check(editor.ReadOnlyReason(f.Target, "Water") != null && f.Inventory.WriteCalls == 2,
         "冲突施工绑定在UI预览中保持只读，不扩大写入范围。");
+      {
+        var g = new Fixture(); var live = new TimberbornTrainer.Core.TrainerSession { State = state };
+        speed.CurrentSpeed = 0; UnityEngine.Time.timeScale = 0; state.SetEnabled(false);
+        var gated = new NativeInventoryEditor(g.Catalog, live, speed);
+        foreach (var op in new[] { InventoryWriteOperation.Add, InventoryWriteOperation.Remove }) {
+          var denied = gated.Execute(g.Target, "Water", op, "1");
+          Check(denied.State == InventoryWriteState.Rejected && denied.Message.Contains("请先开启") && g.Inventory.WriteCalls == 0,
+            "全局关闭时原生编辑器对增减均明确拦截且零写入");
+        }
+        state.SetEnabled(true);
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Add, "5").State == InventoryWriteState.Succeeded &&
+          gated.Execute(g.Target, "Water", InventoryWriteOperation.Remove, "2").State == InventoryWriteState.Succeeded && g.Inventory.Values["Water"] == 13,
+          "同一会话开启全局并暂停后实际编辑器增减均成功");
+        speed.CurrentSpeed = 1; UnityEngine.Time.timeScale = 1;
+        var running = gated.Execute(g.Target, "Water", InventoryWriteOperation.Add, "1");
+        Check(running.State == InventoryWriteState.Rejected && running.Message.Contains("全局修改器已开启") && running.Message.Contains("暂停") && g.Inventory.WriteCalls == 2,
+          "运行中拒绝明确归因为暂停条件，不能误报全局关闭");
+        speed.CurrentSpeed = 0;
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Remove, "1").Message.Contains("暂停") && g.Inventory.WriteCalls == 2,
+          "原生速度与时间倍率未同时暂停仍保留原有安全检查");
+        UnityEngine.Time.timeScale = 0;
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Remove, "1").State == InventoryWriteState.Succeeded,
+          "暂停生效后下一次命令即时通过，不缓存旧拒绝");
+        live.State = new TimberbornTrainer.Core.TrainerState("1.1.2.8-ffc2de0-sw", true, "6000.5.11f1");
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Add, "1").Message.Contains("请先开启"),
+          "命令实时读取会话State，不能沿用旧State的开启状态");
+        live.State.SetEnabled(true);
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Add, "1").State == InventoryWriteState.Succeeded,
+          "会话State重新启用即时同步，无第二份权限状态");
+        live.State = new TimberbornTrainer.Core.TrainerState("未来版本", true, "未知",
+          feature => feature == TimberbornTrainer.Core.TrainerFeature.Inventory ? "库存接口缺失" : null);
+        live.State.SetEnabled(true); int beforeMissing = g.Inventory.WriteCalls;
+        Check(gated.Execute(g.Target, "Water", InventoryWriteOperation.Add, "1").State == InventoryWriteState.Succeeded
+          && g.Inventory.WriteCalls == beforeMissing + 1 && live.State.EffectiveEnabled,
+          "接口警告不阻止实际编辑器操作，原有身份容量预留检查仍执行");
+        Check(gated.ReadOnlyReason(g.Target, "Water") == null, "接口警告不将有效库存标记为只读");
+      }
       return "原生库存身份／预留替身测试：" + _checks + " 项断言通过。不是实机证明。";
     }
   }

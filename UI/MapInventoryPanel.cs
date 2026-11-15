@@ -47,11 +47,15 @@ namespace TimberbornTrainer.UI {
       _target.text = valid ? _snapshot.Target.OwnerName + "\n物品：" + resource.DisplayName + "（" + resource.GoodId + "）" : _snapshot?.Message ?? "请在地图中选择一个仓库。";
       _stock.text = valid ? "当前数量：" + resource.Amount + "；原生容量：" + resource.TotalCapacity +
         "\n可增加：" + resource.FreeCapacity + "；可减少（未预留）：" + resource.AvailableStock +
-        (reason == null ? "" : "\n只读：" + reason) : "";
-      _add.Available(valid && reason == null && _commandsEnabled); _remove.Available(valid && reason == null && _commandsEnabled);
+        (reason == null ? "" : "\n只读：" + reason) + (_commandsEnabled ? "" : "\n请先开启全局修改器。") : "";
+      _add.Available(valid && reason == null); _remove.Available(valid && reason == null);
     }
     private void Edit(InventoryWriteOperation operation) {
-      if (!_active || _disposed || !_commandsEnabled) return;
+      if (!_active || _disposed) return;
+      if (!_commandsEnabled) {
+        _result.text = "请先开启全局修改器，未执行物品修改。";
+        _result.style.color = ControlStyles.Error; return;
+      }
       string id = _snapshot?.Target?.Id, good = _snapshot?.Resources.SingleOrDefault()?.GoodId;
       RefreshSelection();
       if (id == null || good == null || id != _snapshot?.Target?.Id || good != _snapshot?.Resources.SingleOrDefault()?.GoodId) {

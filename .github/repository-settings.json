@@ -1,0 +1,17 @@
+{
+  "description": "Timberborn in-game trainer: Resource Management, Building & Production, and Beaver Management. English/Chinese packages. AS IS hobby project.",
+  "topics": [
+    "timberborn",
+    "timberborn-mod",
+    "trainer",
+    "resource-management",
+    "beaver",
+    "csharp",
+    "unity",
+    "modding",
+    "english",
+    "chinese"
+  ],
+  "homepage": "https://github.com/crayonmmn/TimberbornTrainer#readme",
+  "note": "Repository metadata only; master remains unchanged. Release and v0.4.0 tag require separate approval."
+}

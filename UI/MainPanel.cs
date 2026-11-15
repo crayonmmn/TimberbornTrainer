@@ -16,10 +16,6 @@ namespace TimberbornTrainer.UI {
     private readonly NativeInventoryEditor _editor;
     private readonly BuildingModule _buildings;
     private readonly BeaverModule _beavers;
-    private readonly WeatherModule _weather;
-    private VisualElement _weatherArea;
-    private Label _weatherStatus, _weatherResult;
-    private ActionButton _weatherSet;
     private MapInventoryPanel _inventory;
     private readonly EventBus _events;
     private VisualElement _beaverArea;
@@ -29,35 +25,31 @@ namespace TimberbornTrainer.UI {
     private ScrollView _body;
     private bool _sciencePage;
     private Label _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
-    private readonly Label[] _moduleStates = new Label[5];
+    private readonly Label[] _moduleStates = new Label[3];
     private Toggle _enabled;
     private TextField _exchangeName, _target, _add, _subtract;
     private ActionButton _setButton, _addButton, _subtractButton, _finishConstruction;
     private float _nextRefresh;
     private int _selected;
     private bool _loaded;
+    private FloatingWindow _window;
+    private ActionButton _launcher;
 
-    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories, NativeInventoryEditor editor, WeatherModule weather, EventBus events) {
+    public MainPanel(TrainerSession session, UILayout layout, ResourceModule resources, BuildingModule buildings, BeaverModule beavers, NativeInventoryCatalog inventories, NativeInventoryEditor editor, EventBus events) {
       _session = session; _layout = layout; _resources = resources; _buildings = buildings;
       _beavers = beavers;
       _inventories = inventories;
       _editor = editor;
-      _weather = weather;
       _events = events;
     }
 
     public void Load() {
       _root = new VisualElement { name = "TimberbornTrainer" };
-      // Stay away from the bottom-right automation toast and the game's top/left HUD.
       _root.style.position = Position.Absolute;
       _root.style.left = 260;
       _root.style.top = 105;
-      _root.Add(new ActionButton("修改工具", () => {
-        _panel.style.display = _panel.style.display.value == DisplayStyle.None ? DisplayStyle.Flex : DisplayStyle.None;
-        RefreshScience();
-        if (_panel.style.display.value == DisplayStyle.None) _inventory.Close();
-        if (_panel.style.display.value != DisplayStyle.None && _selected == 0 && !_sciencePage) _inventory.Open();
-      }));
+      _launcher = new ActionButton("修改工具", () => SetPanelOpen(_panel.style.display.value == DisplayStyle.None));
+      _launcher.style.width = 140; _root.Add(_launcher);
       _panel = new VisualElement { name = "TrainerPanel" };
       _panel.style.width = 600;
       _panel.style.maxHeight = 750;
@@ -69,16 +61,27 @@ namespace TimberbornTrainer.UI {
       _root.Add(_panel);
       var title = ControlStyles.Text(Chinese.Title);
       title.style.fontSize = 21;
-      _panel.Add(title);
+      var titleBar = ControlStyles.Row(); titleBar.name = "TrainerTitleBar";
+      titleBar.tooltip = "拖动标题栏移动；靠左或靠右停靠后可自动隐藏";
+      title.style.flexGrow = 1; titleBar.Add(title);
+      titleBar.Add(new ActionButton("×", () => SetPanelOpen(false)) { tooltip = "关闭面板" });
+      _panel.Add(titleBar);
       _panel.Add(ControlStyles.Text("游戏：" + _session.State.GameVersion + "　模组：" + TrainerState.ModVersion));
-      _panel.Add(ControlStyles.Text(_session.State.CompatibilityMessage));
+      var compatibility = ControlStyles.Text(_session.State.CompatibilityMessage);
+      compatibility.name = "TrainerCompatibilityNotice";
+      if (!_session.State.VerifiedVersion) compatibility.style.color = ControlStyles.Error;
+      _panel.Add(compatibility);
+      foreach (TrainerFeature feature in Enum.GetValues(typeof(TrainerFeature))) {
+        var reason = _session.State.InterfaceWarning(feature);
+        if (reason != null) { var notice = ControlStyles.Text(reason); notice.name = "TrainerInterfaceWarning" + feature; notice.style.color = ControlStyles.Error; _panel.Add(notice); }
+      }
       _enabled = new Toggle("全局修改器") { name = "TrainerEnabled" };
       _enabled.style.color = ControlStyles.Light;
       _enabled.labelElement.style.color = ControlStyles.Light;
       _enabled.style.minHeight = 30;
       _enabled.SetEnabled(_session.State.Compatible);
       _enabled.RegisterValueChangedCallback(e => Run(() => _session.State.SetEnabled(e.newValue),
-        e.newValue ? "全局已启用；实验功能仅在独立测试局验证。" : "全局已关闭，修改命令和持续性修改已停止。"));
+        e.newValue ? "全局已启用。" : "全局已关闭，修改命令和持续性修改已停止。"));
       _panel.Add(_enabled);
       var navigation = ControlStyles.Row();
       for (int i = 0; i < Chinese.Modules.Length; ++i) {
@@ -89,7 +92,7 @@ namespace TimberbornTrainer.UI {
         var button = new ActionButton(Chinese.Modules[i], () => SelectModule(index));
         button.style.fontSize = 12;
         column.Add(button);
-        _moduleStates[i] = ControlStyles.Text("未实现");
+        _moduleStates[i] = ControlStyles.Text("已禁用");
         _moduleStates[i].style.fontSize = 12;
         column.Add(_moduleStates[i]);
         navigation.Add(column);
@@ -102,7 +105,7 @@ namespace TimberbornTrainer.UI {
       _body = new ScrollView();
       var body = _body;
       body.style.maxHeight = 300;
-      body.style.minHeight = 150;
+      body.style.minHeight = 0; body.style.flexShrink = 1;
       _panel.Add(body);
       _moduleTitle = ControlStyles.Text("");
       _moduleTitle.style.fontSize = 17;
@@ -135,35 +138,16 @@ namespace TimberbornTrainer.UI {
       _constructionStats = ControlStyles.Text("");
       _buildingArea.Add(_constructionStats);
       _buildingArea.Add(ControlStyles.Text("仅处理点击时的工地快照，调用原生完工接口；游戏暂停或运行时均可使用。建筑自身暂停、占位与原生阻挡仍然有效。"));
-      _buildingArea.Add(ControlStyles.Text("不干预仓库、携带材料或运输预留。受阻工地可能随后按原版流程完工；本功能尚待实机验证。"));
+      _buildingArea.Add(ControlStyles.Text("不干预仓库、携带材料或运输预留。受阻工地可能随后按原版流程完工。"));
       body.Add(_buildingArea);
       _beaverArea = new VisualElement();
-      _hunger = AddNeedToggle("锁定饥饿需求（实验功能）", true);
-      _thirst = AddNeedToggle("锁定口渴需求（实验功能）", false);
+      _hunger = AddNeedToggle("锁定饥饿需求", true);
+      _thirst = AddNeedToggle("锁定口渴需求", false);
       _beaverArea.Add(_hunger); _beaverArea.Add(_thirst);
       _beaverArea.Add(ControlStyles.Text("恢复饥饿/口渴至原版正常满值，并暂停对应需求的自然扣减；关闭后归还原更新状态。只作用于存活海狸，食物品种满足度等其他需求不锁定。恢复模拟后生效，已开始的进食/运输可能按原版完成。"));
-      _needStatus = ControlStyles.Text("待实机验证，包括现有海狸、新生海狸与关闭后的恢复。");
+      _needStatus = ControlStyles.Text("恢复模拟后开始维持需求。");
       _beaverArea.Add(_needStatus);
       body.Add(_beaverArea);
-      _weatherArea = new VisualElement();
-      _weatherStatus = ControlStyles.Text("点击刷新读取本周期天气。");
-      _weatherArea.Add(_weatherStatus);
-      _weatherArea.Add(new ActionButton("刷新天气", RefreshWeather));
-      var durationInput = ControlStyles.Input("灾害总天数", "10");
-      _weatherArea.Add(durationInput);
-      _weatherSet = new ActionButton("设置本周期灾害总时长", () => {
-        var result = _weather.SetDuration(durationInput.value);
-        _weatherResult.text = result.Message;
-        _weatherResult.style.color = result.Success ? ControlStyles.Accent : ControlStyles.Error;
-        RefreshWeather();
-      });
-      _weatherArea.Add(_weatherSet);
-      _weatherResult = ControlStyles.Text("尚未执行时长修改。");
-      _weatherArea.Add(_weatherResult);
-      _weatherArea.Add(ControlStyles.Text("仅修改本周期已选干旱或恶水的总时长，一至一千整数天；不是剩余天数。需手动暂停并启用全局。不能短于已经到达的日期，不切换天气、不修改后续周期。"));
-      _weatherArea.Add(ControlStyles.Text("实验功能，尚待实机验证。一次性修改不写入配置，恢复默认不会撤销已修改的本周期时长。"));
-      body.Add(_weatherArea);
-
       // Compact optional configuration; paths are tooltips instead of wrapping paragraphs.
       var config = new Foldout { text = "配置导入与导出", value = false };
       config.style.color = ControlStyles.Light;
@@ -197,7 +181,7 @@ namespace TimberbornTrainer.UI {
         _session.State.Apply(settings);
       }, "配置已读取，全局保持关闭；科研点数没有回滚。")));
       footer.Add(new ActionButton("恢复默认", () => Run(() => _session.State.RestoreDefaults(), "设置已恢复默认；已获得的科研点数不会撤销。")));
-      footer.Add(new ActionButton("关闭面板", () => { _inventory.Close(); _panel.style.display = DisplayStyle.None; }));
+      footer.Add(new ActionButton("关闭面板", () => SetPanelOpen(false)));
       _panel.Add(footer);
       _session.State.Changed += Refresh;
       _loaded = true;
@@ -206,6 +190,16 @@ namespace TimberbornTrainer.UI {
       RefreshScience();
       _panel.style.display = DisplayStyle.None;
       _layout.AddAbsoluteItem(_root);
+      _window = new FloatingWindow(_root, _panel, titleBar, title);
+    }
+
+    private void SetPanelOpen(bool open) {
+      _panel.style.display = open ? DisplayStyle.Flex : DisplayStyle.None;
+      _launcher.style.display = open ? DisplayStyle.None : DisplayStyle.Flex;
+      _window?.SetOpen(open);
+      RefreshScience();
+      if (!open) _inventory.Close();
+      else if (_selected == 0 && !_sciencePage) _inventory.Open();
     }
 
     private TextField AddScienceRow(string label, string initial, string action, ScienceOperation operation, out ActionButton button) {
@@ -267,12 +261,9 @@ namespace TimberbornTrainer.UI {
       }
       bool active = _session.State.EffectiveEnabled;
       _inventory.SetCommandsEnabled(active);
-      _weatherSet.Available(_weather.Available && !_weather.Duration.Busy);
-      _moduleStates[3].text = active ? "时长编辑·待实测" : "时长编辑·已禁用";
-      _moduleStates[4].text = "共用本周期时长";
       _moduleStates[0].text = _resources.Science.RuntimeError ? "运行异常" : active ? "已启用" : "已禁用";
       _moduleStates[0].style.color = _resources.Science.RuntimeError ? ControlStyles.Error : active ? ControlStyles.Accent : ControlStyles.Muted;
-      _moduleStates[1].text = _buildings.RuntimeError ? "结果需检查" : _buildings.Busy ? "执行中" : active ? "手动命令·待实测" : "已禁用";
+      _moduleStates[1].text = _buildings.RuntimeError ? "结果需检查" : _buildings.Busy ? "执行中" : active ? "手动命令" : "已禁用";
       _moduleStates[1].style.color = _buildings.RuntimeError ? ControlStyles.Error : ControlStyles.Muted;
       _finishConstruction.Available(active && !_buildings.Busy);
       _hunger.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
@@ -280,9 +271,9 @@ namespace TimberbornTrainer.UI {
       ControlStyles.ToggleState(_hunger, _session.State.Settings.LockHunger);
       ControlStyles.ToggleState(_thirst, _session.State.Settings.LockThirst);
       _moduleStates[2].text = _beavers.RuntimeError ? "运行异常" : active &&
-        (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用·待实测" : "已禁用·实验";
+        (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用" : "已禁用";
       _needStatus.text = "本场景维持：饥饿 " + _beavers.HungerCount + "；口渴 " + _beavers.ThirstCount +
-        "；无法安全接管的需求 " + _beavers.UnsafeNeeds + "。修复后效果、消耗和停用恢复待实机复测。";
+        "；无法安全接管的需求 " + _beavers.UnsafeNeeds + "。";
       _constructionStats.text = _buildings.LastResult?.Message ?? "尚未执行批量完工。";
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
       _setButton.Available(active);
@@ -294,16 +285,13 @@ namespace TimberbornTrainer.UI {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
       _moduleDescription.text = index == 0 ? "在地图中选中仓库，自动读取其已配置物品；修改需暂停。科研点使用独立入口。"
-        : index == 1 ? "立即完成所有建造：单次按钮，不持续生效；旧建造开关已废弃。" : "未实现：" + Chinese.Descriptions[index];
-      if (index == 2) _moduleDescription.text = "饥饿与口渴独立维持；实验功能，尚未完成实机验收。";
-      if (index == 3 || index == 4) _moduleDescription.text = "本周期灾害总时长编辑；天气切换、剩余时间直接设置及未来周期覆盖尚未实现。";
+        : index == 1 ? "立即完成所有建造：点击时处理现有工地，不会自动处理新工地。" : Chinese.Descriptions[index];
+      if (index == 2) _moduleDescription.text = "饥饿与口渴可分别开启，关闭后恢复正常消耗。";
       _resourceArea.style.display = _resourceTabs.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;
       if (index != 0) _inventory.Close();
       if (index == 0) SelectResourcePage(_sciencePage);
       _buildingArea.style.display = index == 1 ? DisplayStyle.Flex : DisplayStyle.None;
       _beaverArea.style.display = index == 2 ? DisplayStyle.Flex : DisplayStyle.None;
-      _weatherArea.style.display = index == 3 || index == 4 ? DisplayStyle.Flex : DisplayStyle.None;
-      if (index == 3 || index == 4) RefreshWeather();
     }
 
     private void SelectResourcePage(bool science) {
@@ -313,11 +301,6 @@ namespace TimberbornTrainer.UI {
       _body.scrollOffset = Vector2.zero;
       if (science) { _inventory.Close(); RefreshScience(); }
       else if (_root.panel != null && _panel.style.display.value != DisplayStyle.None) _inventory.Open();
-    }
-
-    private void RefreshWeather() {
-      _weatherStatus.text = _weather.Describe();
-      Refresh();
     }
 
     private void Run(Action action, string success) {
@@ -332,6 +315,7 @@ namespace TimberbornTrainer.UI {
 
     public void Unload() {
       _loaded = false;
+      _window?.Dispose(); _window = null;
       _inventory?.Unload();
       _inventory = null;
       if (_session.State != null) _session.State.Changed -= Refresh;

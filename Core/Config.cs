@@ -15,20 +15,10 @@ namespace TimberbornTrainer.Core {
     public float ProductionMultiplier { get; set; } = 1;
     public bool LockHunger { get; set; }
     public bool LockThirst { get; set; }
-    public bool WeatherOverrideEnabled { get; set; }
-    public float WeatherDurationDays { get; set; } = 1;
-    public bool DroughtOverrideEnabled { get; set; }
-    public float DroughtDurationDays { get; set; } = 1;
-    public bool BadtideOverrideEnabled { get; set; }
-    public float BadtideDurationDays { get; set; } = 1;
 
     public void Validate() {
       if (SchemaVersion != 1) throw new ArgumentException("不支持此配置版本。");
       Check(ProductionMultiplier, 1, 100, "生产倍率");
-      // Provisional input limit, not a claim about the game's supported weather range.
-      Check(WeatherDurationDays, 0.1f, 1000, "天气持续时间");
-      Check(DroughtDurationDays, 0.1f, 1000, "干旱持续时间");
-      Check(BadtideDurationDays, 0.1f, 1000, "恶水持续时间");
     }
 
     private static void Check(float value, float min, float max, string name) {
@@ -63,6 +53,21 @@ namespace TimberbornTrainer.Core {
       }
       if (document["SchemaVersion"]?.Type != JTokenType.Integer)
         throw new ArgumentException("配置缺少版本号。");
+      // Read-only migration of removed Schema-1 keys. They are never stored or re-exported.
+      foreach (var name in new[] { "WeatherOverrideEnabled", "WeatherDurationDays", "DroughtOverrideEnabled",
+                                   "DroughtDurationDays", "BadtideOverrideEnabled", "BadtideDurationDays" }) {
+        var token = document[name];
+        if (token == null) continue;
+        if (name.EndsWith("Enabled", StringComparison.Ordinal)) {
+          if (token.Type != JTokenType.Boolean) throw new ArgumentException("旧配置开关必须为布尔值。");
+        } else {
+          if (token.Type != JTokenType.Float && token.Type != JTokenType.Integer) throw new ArgumentException("旧配置参数必须为数值。");
+          float value = token.Value<float>();
+          if (float.IsNaN(value) || float.IsInfinity(value) || value < .1f || value > 1000)
+            throw new ArgumentException("旧配置参数超出允许范围。");
+        }
+        document.Remove(name);
+      }
       foreach (var property in document.Properties()) {
         var info = typeof(Config).GetProperty(property.Name);
         if (info == null) throw new ArgumentException("配置包含未知字段。");

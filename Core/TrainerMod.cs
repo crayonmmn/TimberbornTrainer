@@ -25,7 +25,6 @@ namespace TimberbornTrainer.Core {
       Bind<NativeInventoryEditor>().AsSingleton();
       Bind<BuildingModule>().AsSingleton();
       Bind<BeaverModule>().AsSingleton();
-      Bind<WeatherModule>().AsSingleton();
       Bind<MainPanel>().AsSingleton();
     }
   }
@@ -34,13 +33,18 @@ namespace TimberbornTrainer.Core {
     public TrainerState State { get; private set; }
     public ConfigStore Store { get; private set; }
     public string StartupMessage { get; private set; } = "";
+    private bool _compatibilityWarningLogged;
 
     public void Load() {
       string version;
       try { version = GameVersions.CurrentVersion.Full; }
       catch { version = "未知"; }
       State = new TrainerState(version, Application.platform == RuntimePlatform.WindowsPlayer && Environment.Is64BitProcess,
-                               Application.unityVersion);
+                               Application.unityVersion, RuntimeApiChecks.Capture());
+      if (!State.VerifiedVersion && !_compatibilityWarningLogged) {
+        _compatibilityWarningLogged = true;
+        Debug.LogWarning(State.CompatibilityMessage);
+      }
       Store = new ConfigStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                           "TimberbornTrainer"));
       try {

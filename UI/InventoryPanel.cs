@@ -28,7 +28,7 @@ namespace TimberbornTrainer.UI {
       _browser = new InventoryBrowser(catalog);
       _diagnostics = catalog as IInventorySafetyDiagnostics;
       _editor = editor;
-      Add(ControlStyles.Text("通用库存管理（开发测试版）"));
+      Add(ControlStyles.Text("通用库存管理"));
       _target = ControlStyles.Text("尚未选择有效库存，请点击更换目标。");
       _target.name = "InventorySelectionSummary"; Add(_target);
       var selectionActions = ControlStyles.Row();

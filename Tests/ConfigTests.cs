@@ -21,12 +21,11 @@ namespace TimberbornTrainer.Tests {
       var defaults = store.Load();
       Check(!defaults.Enabled && defaults.ProductionMultiplier == 1, "默认值错误。");
       Check(!Directory.Exists(directory), "读取缺省配置不应创建目录。");
-      var config = new Config { Enabled = true, LockHunger = true, ProductionMultiplier = 100,
-                                DroughtOverrideEnabled = true, DroughtDurationDays = 20 };
+      var config = new Config { Enabled = true, LockHunger = true, ProductionMultiplier = 100 };
       store.Save(config);
       Check(store.Load().ProductionMultiplier == 100 && store.Load().LockHunger, "保存读取失败。");
       store.Export("测试.json", config);
-      Check(store.Import("测试.json").DroughtDurationDays == 20, "导入导出失败。");
+      Check(store.Import("测试.json").LockHunger && store.Import("测试.json").ProductionMultiplier == 100, "导入导出失败。");
       var oldFile = File.ReadAllText(store.ConfigPath);
       Reject(() => store.Save(new Config { ProductionMultiplier = 101 }), "应拒绝过大倍率。");
       Check(File.ReadAllText(store.ConfigPath) == oldFile, "无效配置不应覆盖原文件。");
@@ -45,9 +44,12 @@ namespace TimberbornTrainer.Tests {
       Reject(() => ConfigStore.Parse("{\"SchemaVersion\":1} {}"), "应拒绝多余 JSON。");
       Reject(() => ConfigStore.Parse(new string(' ', ConfigStore.MaxBytes + 1)), "应限制文件大小。");
       Reject(() => new Config { ProductionMultiplier = float.NaN }.Validate(), "应拒绝非数值。");
-      Reject(() => new Config { WeatherDurationDays = float.PositiveInfinity }.Validate(), "应拒绝无穷值。");
-      Reject(() => new Config { BadtideDurationDays = -1 }.Validate(), "应拒绝负时长。");
-      Reject(() => new Config { DroughtDurationDays = 1001 }.Validate(), "应拒绝过长时长。");
+      Reject(() => ConfigStore.Parse("{\"SchemaVersion\":1,\"WeatherDurationDays\":1e100}"), "旧配置迁移仍拒绝无穷值。");
+      Reject(() => ConfigStore.Parse("{\"SchemaVersion\":1,\"BadtideDurationDays\":-1}"), "旧配置迁移仍拒绝负时长。");
+      Reject(() => ConfigStore.Parse("{\"SchemaVersion\":1,\"DroughtDurationDays\":1001}"), "旧配置迁移仍拒绝过长时长。");
+      var migrated = ConfigStore.Parse("{\"SchemaVersion\":1,\"LockThirst\":true,\"WeatherOverrideEnabled\":true,\"DroughtDurationDays\":20}");
+      Check(migrated.LockThirst && !Newtonsoft.Json.JsonConvert.SerializeObject(migrated).Contains("Drought"), "旧配置迁移保留海狸设置，不再导出已删除字段。");
+      Check(typeof(Config).GetProperty("WeatherOverrideEnabled") == null && typeof(Config).GetProperty("BadtideDurationDays") == null, "配置模型中已真正删除天气参数。");
       File.WriteAllText(store.ConfigPath, "损坏配置");
       Reject(() => store.Load(), "应报告损坏配置。");
       Check(File.ReadAllText(store.ConfigPath) == "损坏配置", "读取失败不得覆盖原文件。");
@@ -66,16 +68,15 @@ namespace TimberbornTrainer.Tests {
       state.RestoreDefaults();
       var reset = state.Settings;
       Check(!reset.Enabled && !reset.LockHunger && !reset.LockThirst && !reset.InstantBuilding && !reset.FreeBuilding &&
-            !reset.WeatherOverrideEnabled && !reset.DroughtOverrideEnabled && !reset.BadtideOverrideEnabled &&
-            reset.ProductionMultiplier == 1 && reset.DroughtDurationDays == 1 && reset.BadtideDurationDays == 1,
+            reset.ProductionMultiplier == 1,
             "恢复默认必须清除所有持续性设置。");
       Check(changes == 3, "状态事件数量错误。");
       var mismatch = new TrainerState("1.1.2.9", true, "6000.5.11f1");
-      Reject(() => mismatch.SetEnabled(true), "错误游戏版本应禁止启用。");
+      mismatch.SetEnabled(true); Check(mismatch.EffectiveEnabled && !mismatch.VerifiedVersion, "未验证版本允许启用，但不得标记为已验证。");
       mismatch.Apply(config);
-      Check(!mismatch.EffectiveEnabled, "导入配置不得绕过环境检查。");
+      Check(mismatch.EffectiveEnabled, "游戏版本警告不阻止有效配置启用。");
       Check(!new TrainerState(TrainerState.TargetVersion, false, "6000.5.11f1").Compatible, "错误平台应被拒绝。");
-      Check(!new TrainerState(TrainerState.TargetVersion, true, "6000.5.12f1").Compatible, "错误引擎版本应被拒绝。");
+      Check(new TrainerState(TrainerState.TargetVersion, true, "6000.5.12f1").Compatible && !new TrainerState(TrainerState.TargetVersion, true, "6000.5.12f1").VerifiedVersion, "不同引擎版本只警告，不因版本号阻止启用。");
       // Isolated JSON configuration files, never a game save or the user's real configuration.
       var legacyStore = new ConfigStore(Path.Combine(directory, "legacy-construction"));
       legacyStore.Save(new Config { Enabled = true, InstantBuilding = true, FreeBuilding = true, LockHunger = true });

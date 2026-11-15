@@ -7,6 +7,31 @@ function Import-ExistingCompiler([string]$Directory) {
   }
 }
 
+function Initialize-TextLocalization([string]$Language, [string]$ProjectRoot) {
+  $script:OutputLanguage = $Language
+  $script:LocalizedStrings = Get-Content -LiteralPath (Join-Path $ProjectRoot 'UI/Localization/strings.en.json') -Raw | ConvertFrom-Json -AsHashtable
+  $script:TestTextExpectations = Get-Content -LiteralPath (Join-Path $ProjectRoot 'Tests/TextExpectations.en.json') -Raw | ConvertFrom-Json -AsHashtable
+  $script:LocalizedLiteralCount = 0
+}
+
+function Convert-LocalizedSource([string]$Text, [string]$Source, $ParseOptions) {
+  if ($script:OutputLanguage -ne 'en') { return $Text }
+  $parsed = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($Text, $ParseOptions)
+  $tokens = @($parsed.GetRoot().DescendantTokens() | Where-Object RawKind -EQ ([int][Microsoft.CodeAnalysis.CSharp.SyntaxKind]::StringLiteralToken) | Sort-Object { $_.Span.Start } -Descending)
+  $testSource = $Source -match '[\\/]Tests[\\/]'
+  foreach ($token in $tokens) {
+    $value = $token.ValueText
+    if ($testSource -and $script:TestTextExpectations.ContainsKey($value)) { $value = $script:TestTextExpectations[$value] }
+    elseif ($script:LocalizedStrings.ContainsKey($value)) { $value = $script:LocalizedStrings[$value] }
+    else { continue }
+    # Replace literal tokens only. No identifiers, expression structure, runtime values or source files change.
+    $literal = [Microsoft.CodeAnalysis.CSharp.SyntaxFactory]::Literal([string]$value).Text
+    $Text = $Text.Remove($token.Span.Start, $token.Span.Length).Insert($token.Span.Start, $literal)
+    ++$script:LocalizedLiteralCount
+  }
+  return $Text
+}
+
 function Invoke-SourceCompilation {
   param([string[]]$Sources, [string[]]$References, [string]$Output, [string]$Name)
   $parseOptions = [Microsoft.CodeAnalysis.CSharp.CSharpParseOptions]::Default.WithLanguageVersion(
@@ -14,6 +39,9 @@ function Invoke-SourceCompilation {
   $trees = [System.Collections.Generic.List[Microsoft.CodeAnalysis.SyntaxTree]]::new()
   foreach ($source in ($Sources | Sort-Object)) {
     $text = [IO.File]::ReadAllText($source)
+    if (Get-Variable OutputLanguage -Scope Script -ErrorAction SilentlyContinue) {
+      $text = Convert-LocalizedSource $text $source $parseOptions
+    }
     $trees.Add([Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($text, $parseOptions, $source, [Text.Encoding]::UTF8))
   }
   $metadata = [System.Collections.Generic.List[Microsoft.CodeAnalysis.MetadataReference]]::new()

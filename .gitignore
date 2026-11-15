@@ -17,3 +17,16 @@ GameReferences/
 TestResults/
 *.timber
 *.timberbak
+
+# Local build, package, backup and diagnostic outputs
+*.zip
+*.log
+*.bak
+*.tmp
+/PreparedPackages/
+/TrainerModBackups/
+/TestBuilds/
+/DeploymentChecks/
+/CompatibilityChecks/
+/LocalizationChecks/
+/RollbackRecords/

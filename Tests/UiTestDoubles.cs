@@ -5,7 +5,12 @@ using System.Linq;
 
 namespace UnityEngine {
   public struct Color { public Color(float r, float g, float b, float a = 1) { } }
-  public struct Vector2 { public static Vector2 zero => default; }
+  public struct Vector2 { public float x,y; public Vector2(float x,float y){this.x=x;this.y=y;} public static Vector2 zero => default; }
+  public struct Rect {
+    public float x,y,width,height; public Rect(float x,float y,float w,float h){this.x=x;this.y=y;width=w;height=h;}
+    public Vector2 min=>new Vector2(x,y); public Vector2 max=>new Vector2(x+width,y+height);
+  }
+  public enum TextAnchor { MiddleCenter }
   public static class Time { public static float unscaledTime; }
 }
 namespace UnityEngine.UIElements {
@@ -14,36 +19,72 @@ namespace UnityEngine.UIElements {
   public enum WhiteSpace { Normal }
   public enum FlexDirection { Row }
   public enum Align { Center }
+  public enum PickingMode { Position, Ignore }
+  public enum TrickleDown { NoTrickleDown, TrickleDown }
   public struct StyleEnum<T> { public T value; public static implicit operator StyleEnum<T>(T value) => new StyleEnum<T> { value = value }; }
   public sealed class Style {
     public StyleEnum<DisplayStyle> display;
     public Position position; public WhiteSpace whiteSpace; public FlexDirection flexDirection; public Align alignItems;
-    public float left, top, width, maxWidth, minWidth, maxHeight, minHeight, fontSize, flexGrow, flexBasis,
+    public float left, top, width, height, maxWidth, minWidth, maxHeight, minHeight, fontSize, flexGrow, flexBasis, flexShrink,
       paddingLeft, paddingRight, paddingTop, paddingBottom, marginTop, marginBottom, marginRight,
       borderLeftWidth, borderRightWidth, borderTopWidth, borderBottomWidth;
     public UnityEngine.Color color, backgroundColor, borderLeftColor, borderRightColor, borderTopColor, borderBottomColor;
+    public UnityEngine.TextAnchor unityTextAlign;
   }
+  public interface IVisualElementScheduledItem { IVisualElementScheduledItem Every(long interval); void Pause(); void Resume(); }
+  public sealed class ScheduledItem : IVisualElementScheduledItem {
+    public bool Paused; public readonly Action Action; public ScheduledItem(Action a){Action=a;}
+    public IVisualElementScheduledItem Every(long interval)=>this; public void Pause(){Paused=true;} public void Resume(){Paused=false;}
+  }
+  public sealed class Scheduler { public readonly List<ScheduledItem> Items=new List<ScheduledItem>(); public IVisualElementScheduledItem Execute(Action a){var i=new ScheduledItem(a);Items.Add(i);return i;} }
+  public sealed class FocusController { public object focusedElement; }
+  public static class PointerId { public const int mousePointerId=0; }
+  public sealed class TestPanel { public VisualElement visualTree; public readonly FocusController focusController=new FocusController(); public object GetCapturingElement(int id)=>VisualElement.Captured; }
   public class VisualElement {
     public string name, tooltip; public readonly Style style = new Style();
-    public VisualElement parent; public readonly List<VisualElement> Children = new List<VisualElement>();
+    public VisualElement parent; public readonly List<VisualElement> ChildItems = new List<VisualElement>();
     public bool enabledSelf = true, Attached;
-    public object panel => Attached || parent?.panel != null ? this : null;
+    private TestPanel _testPanel;
+    public TestPanel panel => parent?.panel ?? (Attached ? (_testPanel ?? (_testPanel=new TestPanel{visualTree=this})) : null);
+    public bool focusable=true; public PickingMode pickingMode;
+    public readonly Scheduler schedule=new Scheduler();
+    public float LayoutWidth=600,LayoutHeight=650;
+    public UnityEngine.Rect worldBound=>new UnityEngine.Rect(style.left,style.top,style.width>0?style.width:LayoutWidth,LayoutHeight);
+    public UnityEngine.Rect resolvedStyle=>worldBound;
+    public UnityEngine.Vector2 WorldToLocal(UnityEngine.Vector2 p)=>new UnityEngine.Vector2(p.x-worldBound.x,p.y-worldBound.y);
+    private static VisualElement _capture;
+    public static VisualElement Captured=>_capture;
+    public bool HasMouseCapture()=>ReferenceEquals(_capture,this);
+    public void CaptureMouse(){_capture=this;}
+    public void ReleaseMouse(){if(HasMouseCapture()){_capture=null;Dispatch(new MouseCaptureOutEvent());}}
+    public void Focus(){if(panel==null)return;panel.focusController.focusedElement=this;Dispatch(new FocusInEvent());}
+    public void Blur(){if(panel!=null&&ReferenceEquals(panel.focusController.focusedElement,this)){panel.focusController.focusedElement=null;Dispatch(new FocusOutEvent());}}
     public bool enabledInHierarchy => enabledSelf && (parent == null || parent.enabledInHierarchy);
     public bool Visible => style.display.value != DisplayStyle.None && (parent == null || parent.Visible);
-    private readonly Dictionary<Type, List<Delegate>> _callbacks = new Dictionary<Type, List<Delegate>>();
-    public void Add(VisualElement e) { e.RemoveFromHierarchy(); Children.Add(e); e.parent = this; }
-    public void Insert(int i, VisualElement e) { e.RemoveFromHierarchy(); Children.Insert(i, e); e.parent = this; }
-    public void Clear() { foreach (var e in Children) e.parent = null; Children.Clear(); }
-    public void RemoveFromHierarchy() { parent?.Children.Remove(this); parent = null; }
-    public IEnumerable<VisualElement> Tree() { yield return this; foreach (var c in Children) foreach (var e in c.Tree()) yield return e; }
+    private sealed class Handler { public Delegate Callback; public TrickleDown Phase; }
+    private readonly Dictionary<Type, List<Handler>> _callbacks = new Dictionary<Type, List<Handler>>();
+    public IEnumerable<VisualElement> Children()=>ChildItems;
+    public void Add(VisualElement e) { e.RemoveFromHierarchy(); ChildItems.Add(e); e.parent = this; }
+    public void Insert(int i, VisualElement e) { e.RemoveFromHierarchy(); ChildItems.Insert(i, e); e.parent = this; }
+    public void Clear() { foreach (var e in ChildItems) e.parent = null; ChildItems.Clear(); }
+    public void RemoveFromHierarchy() { parent?.ChildItems.Remove(this); parent = null; }
+    public IEnumerable<VisualElement> Tree() { yield return this; foreach (var c in ChildItems) foreach (var e in c.Tree()) yield return e; }
     public T Q<T>(string name = null, string className = null) where T : VisualElement => Tree().OfType<T>().FirstOrDefault(e => name == null || e.name == name);
     public VisualElement Q(string name = null, string className = null) => name == null ? null : Tree().FirstOrDefault(e => e.name == name);
     public void SetEnabled(bool enabled) { enabledSelf = enabled; }
-    public void RegisterCallback<T>(Action<T> action) {
-      if (!_callbacks.TryGetValue(typeof(T), out var list)) _callbacks.Add(typeof(T), list = new List<Delegate>());
-      list.Add(action);
+    public void RegisterCallback<T>(Action<T> action,TrickleDown phase=TrickleDown.NoTrickleDown) {
+      if (!_callbacks.TryGetValue(typeof(T), out var list)) _callbacks.Add(typeof(T), list = new List<Handler>());
+      list.Add(new Handler{Callback=action,Phase=phase});
     }
-    protected void Send<T>(T e) { if (_callbacks.TryGetValue(typeof(T), out var list)) foreach (var d in list.ToArray()) ((Action<T>)d)(e); }
+    public void UnregisterCallback<T>(Action<T> action,TrickleDown phase=TrickleDown.NoTrickleDown){if(_callbacks.TryGetValue(typeof(T),out var list))list.RemoveAll(h=>h.Callback.Equals(action)&&h.Phase==phase);}
+    protected void Send<T>(T e) {if(e is EventBase ev&&ev.target==null)ev.target=this; if (_callbacks.TryGetValue(typeof(T), out var list)) foreach (var d in list.ToArray()) ((Action<T>)d.Callback)(e); }
+    private void Deliver<T>(T e,TrickleDown phase) where T:EventBase {if(_callbacks.TryGetValue(typeof(T),out var list))foreach(var h in list.ToArray()){if(e.Stopped)return;if(h.Phase==phase)((Action<T>)h.Callback)(e);}}
+    public void Dispatch<T>(T e) where T:EventBase {
+      var target=(e is MouseMoveEvent||e is MouseUpEvent)&&_capture!=null?_capture:this;e.target=target;
+      var path=new List<VisualElement>();for(var p=target;p!=null;p=p.parent)path.Add(p);
+      for(int i=path.Count-1;i>=0;--i)path[i].Deliver(e,TrickleDown.TrickleDown);
+      foreach(var p in path)p.Deliver(e,TrickleDown.NoTrickleDown);
+    }
   }
   public class Label : VisualElement { public string text; public Label(string text) { this.text = text; } }
   public class Button : VisualElement {
@@ -51,7 +92,7 @@ namespace UnityEngine.UIElements {
     public Button(Action action) { _action = action; }
     public void Click(int count = 1) { if (Visible && enabledInHierarchy) { _action(); Send(new ClickEvent { clickCount = count }); } }
   }
-  public class ChangeEvent<T> { public T newValue; }
+  public class ChangeEvent<T>:EventBase { public T newValue; }
   public class ValueField<T> : VisualElement {
     protected T _value; public readonly Label labelElement = new Label("");
     public T value { get => _value; set { _value = value; Send(new ChangeEvent<T> { newValue = value }); } }
@@ -68,8 +109,17 @@ namespace UnityEngine.UIElements {
   public class Foldout : ValueField<bool> { public string text; public Foldout() { Add(new Toggle()); } }
   public class ScrollView : VisualElement { public UnityEngine.Vector2 scrollOffset; }
   public class ClickEvent { public int clickCount; }
-  public class MouseEnterEvent { } public class MouseLeaveEvent { } public class MouseDownEvent { }
-  public class MouseUpEvent { } public class MouseCaptureOutEvent { } public class FocusInEvent { } public class FocusOutEvent { }
+  public class EventBase { public object target; public bool Stopped; public void StopPropagation(){Stopped=true;} }
+  public class MouseEnterEvent:EventBase { } public class MouseLeaveEvent:EventBase { }
+  public class MouseDownEvent:EventBase { public int button; public UnityEngine.Vector2 mousePosition; }
+  public class MouseUpEvent:EventBase { public int button; public UnityEngine.Vector2 mousePosition; }
+  public class MouseMoveEvent:EventBase { public UnityEngine.Vector2 mousePosition; }
+  public class MouseCaptureOutEvent:EventBase { } public class FocusInEvent:EventBase { } public class FocusOutEvent:EventBase { }
+  public class WheelEvent:EventBase { }
+  public class KeyDownEvent:EventBase { public char character; }
+  public class Slider:ValueField<float> { }
+  public class GeometryChangedEvent:EventBase { public UnityEngine.Rect oldRect,newRect; }
+  public class AttachToPanelEvent:EventBase { } public class DetachFromPanelEvent:EventBase { }
 }
 namespace Timberborn.SingletonSystem {
   [AttributeUsage(AttributeTargets.Method)] public sealed class OnEventAttribute : Attribute { }
@@ -90,7 +140,9 @@ namespace Timberborn.SelectionSystem {
 namespace Timberborn.UILayoutSystem {
   public sealed class UILayout {
     public UnityEngine.UIElements.VisualElement Root;
-    public void AddAbsoluteItem(UnityEngine.UIElements.VisualElement e) { Root = e; e.Attached = true; }
+    public void AddAbsoluteItem(UnityEngine.UIElements.VisualElement e) {
+      var screen=new UnityEngine.UIElements.VisualElement{Attached=true,LayoutWidth=1920,LayoutHeight=1080};screen.Add(e);Root=e;
+    }
   }
 }
 namespace TimberbornTrainer.Core {
@@ -105,10 +157,7 @@ namespace TimberbornTrainer.Modules {
     public void CompleteAll() { }
   }
   public sealed class BeaverModule { public bool RuntimeError => false; public int HungerCount => 0; public int ThirstCount => 0; public int UnsafeNeeds => 0; }
-  public sealed class WeatherModule {
-    public bool Available => false; public WeatherDurationCommands Duration = new WeatherDurationCommands(null, () => false);
-    public string Describe() => "天气替身"; public WeatherDurationResult SetDuration(string input) => Duration.Execute(input);
-  }
+
   public sealed class UiStock : IWarehouseStock {
     public int Amount = 10, Writes, Capacity = 100; public bool Alive = true;
     public bool Usable => Alive;

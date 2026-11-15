@@ -18,7 +18,7 @@ namespace TimberbornTrainer.Modules {
     public InventoryCommands(Func<bool> enabled) { _enabled = enabled; }
     public ScienceResult Execute(IWarehouseStock stock, ScienceOperation operation, string input) {
       var result = new ScienceResult { Message = "库存修改失败。" };
-      if (!_enabled()) { result.Message = "全局修改器已关闭或版本不匹配。"; return result; }
+      if (!_enabled()) { result.Message = "全局修改器已关闭。"; return result; }
       if (operation != ScienceOperation.Add && operation != ScienceOperation.Set && operation != ScienceOperation.Subtract) {
         result.Message = "不支持的库存操作。"; return result;
       }

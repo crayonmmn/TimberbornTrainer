@@ -42,7 +42,7 @@ namespace TimberbornTrainer.Modules {
 
     public ScienceResult Execute(ScienceOperation operation, string input) {
       var result = new ScienceResult { Message = "操作失败。" };
-      if (!_enabled()) { result.Message = "全局修改器已关闭或版本不匹配，禁止修改科研点数。"; return result; }
+      if (!_enabled()) { result.Message = "全局修改器已关闭，禁止修改科研点数。"; return result; }
       if (operation != ScienceOperation.Set && operation != ScienceOperation.Add && operation != ScienceOperation.Subtract) {
         result.Message = "不支持的科研操作。"; return result;
       }
