@@ -19,8 +19,15 @@ namespace TimberbornTrainer.Modules {
     public NativeInventoryEditor(NativeInventoryCatalog catalog, TrainerSession session, SpeedManager speed) {
       _catalog = catalog; _session = session; _speed = speed;
     }
-    private bool Permitted() => !_unloaded && _session.State != null && _session.State.EffectiveEnabled
-      && _speed.CurrentSpeed == 0 && UnityEngine.Time.timeScale == 0;
+    private string PermissionError() {
+      if (_unloaded) return "场景已卸载，未执行物品修改。";
+      if (_session?.State == null) return "场景尚未就绪，未执行物品修改。";
+      if (!_session.State.Compatible) return "运行环境不匹配，未执行物品修改。";
+      if (!_session.State.EffectiveEnabled) return "请先开启全局修改器，未执行物品修改。";
+      if (_speed == null || _speed.CurrentSpeed != 0 || UnityEngine.Time.timeScale != 0)
+        return "全局修改器已开启；请先使用游戏原生暂停按钮暂停模拟后再修改物品。";
+      return null;
+    }
     public string ReadOnlyReason(string targetId, string resource) {
       if (_unloaded) return "场景已卸载，请重新进入聚居地。";
       try {
@@ -33,10 +40,17 @@ namespace TimberbornTrainer.Modules {
       if (_busy) return new InventoryEditResult { Message = "已有库存命令执行中，拒绝重入。" };
       _busy = true;
       try {
-        var r = InventoryEditCommands.Execute(() => _catalog.ResolveForEdit(targetId, resource), Permitted, operation, input);
+        string denial = null, permissionState = "未检查";
+        var r = InventoryEditCommands.Execute(() => _catalog.ResolveForEdit(targetId, resource), () => {
+          denial = PermissionError();
+          permissionState = "全局=" + (_session?.State?.EffectiveEnabled == true) + "；原生速度=" +
+            (_speed == null ? "未知" : _speed.CurrentSpeed.ToString()) + "；时间倍率=" + UnityEngine.Time.timeScale + "；已卸载=" + _unloaded;
+          return denial == null;
+        }, operation, input);
+        if (denial != null && !r.NativeCallStarted) r.Message = denial;
         UnityEngine.Debug.Log("海狸修改工具：库存命令 " + operation + "；状态=" + r.State
           + "；调用开始=" + r.NativeCallStarted + "；前=" + r.Before + "；后=" + r.After
-          + "；请求差额=" + r.RequestedDelta + "。无自动重试。");
+          + "；请求差额=" + r.RequestedDelta + "；" + permissionState + "；反馈=" + r.Message + "。无自动重试。");
         return r;
       } finally { _busy = false; }
     }

@@ -57,6 +57,8 @@ namespace TimberbornTrainer.UI {
     internal ActionButton(string text, Action action) : base(action) {
       this.text = text;
       style.minHeight = 30;
+      style.whiteSpace = WhiteSpace.Normal;
+      style.flexShrink = 1;
       style.paddingLeft = style.paddingRight = 8;
       style.marginRight = 4;
       style.marginTop = 3;

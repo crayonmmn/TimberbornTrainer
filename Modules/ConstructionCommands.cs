@@ -27,7 +27,7 @@ namespace TimberbornTrainer.Modules {
     public ConstructionResult Execute(Func<IConstructionTarget[]> snapshot, Action<Exception> logError = null) {
       var result = new ConstructionResult();
       if (Busy) { result.Message = "已有批量完工正在执行，本次未执行。"; return result; }
-      if (!_enabled()) { result.Message = "全局修改器已关闭、版本不匹配或场景已卸载，未执行。"; return result; }
+      if (!_enabled()) { result.Message = "全局修改器已关闭或场景已卸载，未执行。"; return result; }
       Busy = true;
       bool interrupted = false;
       try {

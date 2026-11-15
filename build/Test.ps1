@@ -1,17 +1,18 @@
 [CmdletBinding()]
-param([Parameter(Mandatory = $true)][string]$GamePath, [string]$CompilerDirectory = $PSHOME, [switch]$CompileOnly)
+param([Parameter(Mandatory = $true)][string]$GamePath, [string]$CompilerDirectory = $PSHOME, [switch]$CompileOnly, [ValidateSet('en','zh-CN')][string]$Language = 'en')
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'Compiler.ps1')
 Import-ExistingCompiler $CompilerDirectory
+Initialize-TextLocalization $Language $projectRoot
 $jsonDll = Join-Path $GamePath 'Timberborn_Data/Managed/Newtonsoft.Json.dll'
 $references = @(([string][AppContext]::GetData('TRUSTED_PLATFORM_ASSEMBLIES')).Split([IO.Path]::PathSeparator))
 $references = @($references | Where-Object { [IO.Path]::GetFileName($_) -ne 'Newtonsoft.Json.dll' }) + @($jsonDll)
-$testRoot = Join-Path $projectRoot 'TestResults'
+$testRoot = Join-Path $projectRoot ('TestResults/' + $Language)
 [IO.Directory]::CreateDirectory($testRoot) | Out-Null
 $testDll = Join-Path $testRoot 'TimberbornTrainer.ConfigTests.dll'
-$sources = @('Core/Config.cs','Core/TrainerState.cs','Modules/ScienceCommands.cs','Modules/ConstructionCommands.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
+$sources = @('Core/Config.cs','Core/TrainerState.cs','Core/RuntimeApiChecks.cs','Modules/ScienceCommands.cs','Modules/ConstructionCommands.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/CompatibilityTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
 Invoke-SourceCompilation -Sources $sources -References $references -Output $testDll -Name 'TimberbornTrainer.ConfigTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($jsonDll) | Out-Null
@@ -19,6 +20,7 @@ if (!$CompileOnly) {
 $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.ConfigTests]::Run($isolated)
 [TimberbornTrainer.Tests.ScienceTests]::Run()
+[TimberbornTrainer.Tests.CompatibilityTests]::Run()
 [TimberbornTrainer.Tests.ConstructionTests]::Run()
 [TimberbornTrainer.Tests.SurvivalTests]::Run()
 [TimberbornTrainer.Tests.InventoryBrowserTests]::Run()
@@ -56,17 +58,14 @@ if (!$CompileOnly) {
   [Reflection.Assembly]::LoadFrom($editDll) | Out-Null
   [TimberbornTrainer.Tests.InventoryEditTests]::Run()
 }
-$weatherDll = Join-Path $testRoot 'TimberbornTrainer.WeatherTests.dll'
-$weatherSources = @('Modules/WeatherModule.cs','Modules/WeatherDurationCommands.cs','Tests/WeatherTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
-Invoke-SourceCompilation -Sources $weatherSources -References @($references + @($testDll)) -Output $weatherDll -Name 'TimberbornTrainer.WeatherTests'
-if (!$CompileOnly) {
-  [Reflection.Assembly]::LoadFrom($weatherDll) | Out-Null
-  [TimberbornTrainer.Tests.WeatherTests]::Run()
-}
 $uiDll = Join-Path $testRoot 'TimberbornTrainer.ResourceUiTests.dll'
-$uiSources = @('UI/MainPanel.cs','UI/InventoryPanel.cs','UI/MapInventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/MapInventorySource.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Modules/WeatherDurationCommands.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$uiSources = @('UI/MainPanel.cs','UI/FloatingWindow.cs','UI/FloatingWindowState.cs','UI/EdgeTabGesture.cs','UI/InventoryPanel.cs','UI/MapInventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/MapInventorySource.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs','Tests/FloatingWindowTests.cs','Tests/EdgeTabTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $uiSources -References @($references + @($testDll)) -Output $uiDll -Name 'TimberbornTrainer.ResourceUiTests'
 if (!$CompileOnly) {
   [Reflection.Assembly]::LoadFrom($uiDll) | Out-Null
   [TimberbornTrainer.Tests.ResourceUiTests]::Run((Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))))
-} else { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }
+  [TimberbornTrainer.Tests.FloatingWindowTests]::Run()
+  [TimberbornTrainer.Tests.EdgeTabTests]::Run()
+}
+
+if ($CompileOnly) { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }

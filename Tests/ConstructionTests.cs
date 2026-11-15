@@ -115,7 +115,7 @@ namespace TimberbornTrainer.Tests {
       wrongVersion.Apply(legacy);
       var guarded = new ConstructionCommands(() => wrongVersion.EffectiveEnabled);
       result = guarded.Execute(() => { ++snapshots; return new IConstructionTarget[] { next }; });
-      Check(snapshots == 1 && next.Calls == 0, "版本不匹配不能执行命令。");
+      Check(snapshots == 2 && next.Calls == 1, "未验证版本不阻止已授权的一次性命令。");
       return "通过：" + _checks + " 项一次性施工命令/旧配置断言（模拟目标，不代表原生适配器实机通过）。";
     }
   }

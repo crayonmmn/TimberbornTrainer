@@ -7,16 +7,26 @@ namespace TimberbornTrainer.Core {
     public event Action Changed;
     public bool EffectiveEnabled => Compatible && _config.Enabled;
     public bool Compatible { get; }
+    public bool VerifiedVersion { get; }
+    private readonly Func<TrainerFeature, string> _interfaceWarning;
     public string GameVersion { get; }
     public string CompatibilityMessage { get; }
     public const string TargetVersion = "1.1.2.8-ffc2de0-sw";
-    public const string ModVersion = "0.3.0";
+    public const string ModVersion = "0.4.0";
 
-    public TrainerState(string version, bool windows64, string unityVersion) {
+    public TrainerState(string version, bool windows64, string unityVersion, Func<TrainerFeature, string> interfaceWarning = null) {
       GameVersion = version ?? "未知";
-      Compatible = windows64 && version == TargetVersion && unityVersion == "6000.5.11f1";
-      CompatibilityMessage = Compatible ? "版本检查通过；库存、需求维持与施工均为实验功能" : "运行环境不匹配，已禁止启用";
+      // Compatible is the supported platform gate; version verification is informational only.
+      Compatible = windows64;
+      VerifiedVersion = version == TargetVersion && unityVersion == "6000.5.11f1";
+      _interfaceWarning = interfaceWarning;
+      CompatibilityMessage = !Compatible ? "当前平台不受支持（需要Windows 64位）。" : VerifiedVersion ? "游戏版本匹配" :
+        "游戏版本兼容性警告\n当前游戏版本尚未经过 Timberborn Trainer 的完整验证。\n"
+        + "修改器仍将尝试启动，但部分功能可能因游戏内部接口变化而无法正常工作，甚至出现异常。\n"
+        + "请自行承担在未经验证版本中使用的风险。\n已验证版本：" + TargetVersion
+        + "（Unity 6000.5.11f1）\n当前检测版本：" + GameVersion + "（Unity " + unityVersion + "）";
     }
+    public string InterfaceWarning(TrainerFeature feature) => _interfaceWarning?.Invoke(feature);
 
     public void Apply(Config settings) {
       if (settings == null) throw new ArgumentNullException(nameof(settings));

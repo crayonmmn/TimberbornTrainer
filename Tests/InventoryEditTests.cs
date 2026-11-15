@@ -6,13 +6,13 @@ namespace TimberbornTrainer.Tests {
     private static int _checks;
     private static void Check(bool value, string message) { ++_checks; if (!value) throw new Exception(message); }
     private sealed class Stock : IWarehouseStock {
-      public int Amount = 20, Reserved = 3, Free = 50, Writes;
-      public bool Valid = true, ThrowAfterWrite, BadRead, InvalidateOnRead;
+      public int Amount = 20, Reserved = 3, Free = 50, Writes, GiveCalls;
+      public bool Valid = true, ThrowAfterWrite, BadRead, InvalidateOnRead, MissingWriteApi;
       public bool Usable => Valid;
       public int Read() { if (BadRead) throw new Exception(); if (InvalidateOnRead) Valid = false; return Amount; }
       public int FreeCapacity() => Free;
       public int UnreservedStock() => Amount - Reserved;
-      public void Give(int n) { ++Writes; Amount += n; if (ThrowAfterWrite) throw new Exception(); }
+      public void Give(int n) { ++GiveCalls; if (MissingWriteApi) throw new MissingMethodException("Inventory.GiveExisting"); ++Writes; Amount += n; if (ThrowAfterWrite) throw new Exception(); }
       public void Take(int n) { ++Writes; Amount -= n; if (ThrowAfterWrite) throw new Exception(); }
     }
     private static InventoryEditResult Run(Stock s, InventoryWriteOperation op, string input = "10", bool permitted = true) =>
@@ -62,6 +62,11 @@ namespace TimberbornTrainer.Tests {
         "变更后事件异常，即使达目标也未确认，无重试或逆操作。");
       s = new Stock { BadRead = true }; r = Run(s, InventoryWriteOperation.Add);
       Check(r.State == InventoryWriteState.Rejected && s.Writes == 0 && r.After == null, "读取异常不编造零。");
+      s = new Stock { MissingWriteApi = true }; r = Run(s, InventoryWriteOperation.Add);
+      Check(r.State == InventoryWriteState.Indeterminate && r.After == 20 && s.GiveCalls == 1 && s.Writes == 0 && !r.AutomaticRetryAllowed,
+        "用户尝试的实际接口调用抛MissingMethodException时捕获并回读，不扩散、不重试、不假报成功");
+      r = InventoryEditCommands.Execute(() => throw new MissingMethodException("inventory lookup"), () => true, InventoryWriteOperation.Add, "1");
+      Check(r.State == InventoryWriteState.Rejected && !r.NativeCallStarted, "目标解析接口实际失败正常返回错误，不进入写入调用");
       return "库存编辑命令：" + _checks + " 项断言通过。";
     }
   }

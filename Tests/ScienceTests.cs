@@ -54,7 +54,7 @@ namespace TimberbornTrainer.Tests {
       Check(points.Value == 12, "配置应用不能执行一次性命令。");
       var mismatchState = new TrainerState("其他版本", true, "6000.5.11f1");
       mismatchState.Apply(new Config { Enabled = true });
-      Check(!new ScienceCommands(points, () => mismatchState.EffectiveEnabled).Execute(ScienceOperation.Add, "1").Success, "配置不得绕过版本限制。");
+      Check(new ScienceCommands(points, () => mismatchState.EffectiveEnabled).Execute(ScienceOperation.Add, "1").Success, "未验证版本的可用科研接口允许执行，保留正常数量校验。");
 
       var unavailable = new FakePoints { FailReadAt = 1 };
       var bad = new ScienceCommands(unavailable, () => true);

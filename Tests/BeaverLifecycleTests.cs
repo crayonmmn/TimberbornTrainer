@@ -120,6 +120,13 @@ namespace TimberbornTrainer.Tests {
       var loadedState = State(); loadedState.SetEnabled(false); var loadedPop = new CharacterPopulation(); var loaded = Character(); loadedPop.NativeCharacters.Add(loaded);
       loaded.GetComponent<NeedManager>().Values["Hunger"] = 1; var loadedModule = new BeaverModule(new TrainerSession { State = loadedState }, loadedPop); loadedModule.PostLoad(); loadedModule.Tick();
       loaded.GetComponent<NeedManager>().Advance(.1f); Check(loaded.GetComponent<NeedManager>().Values["Hunger"] < 1 && loadedPop.Reads == 0, "新场景加载全局关闭、更新默认启用，正常值不是永久储备。"); loadedModule.Unload();
+      var blockedState = new TrainerState("未来版本", true, "未知", f => f == TrainerFeature.Needs ? "Need接口缺失" : null);
+      blockedState.Apply(new Config { Enabled = true, LockHunger = true, LockThirst = true });
+      var blockedPop = new CharacterPopulation(); var blockedChar = Character(); blockedPop.NativeCharacters.Add(blockedChar);
+      var blockedModule = new BeaverModule(new TrainerSession { State = blockedState }, blockedPop); blockedModule.PostLoad(); blockedModule.Tick();
+      Check(blockedState.EffectiveEnabled && blockedPop.Reads > 0 && blockedModule.HungerCount == 1,
+        "需求接口警告不阻止实际维生Tick，仍按原有条件接管有效需求");
+      blockedModule.Unload();
       return "维生实际模块/原生范围与更新行为替身：" + _checks + " 项通过；非实机行为证明。";
     }
   }
