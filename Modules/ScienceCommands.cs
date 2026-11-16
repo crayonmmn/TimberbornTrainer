@@ -41,25 +41,25 @@ namespace TimberbornTrainer.Modules {
     }
 
     public ScienceResult Execute(ScienceOperation operation, string input) {
-      var result = new ScienceResult { Message = "操作失败。" };
-      if (!_enabled()) { result.Message = "全局修改器已关闭，禁止修改科研点数。"; return result; }
+      var result = new ScienceResult { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0135") };
+      if (!_enabled()) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0322"); return result; }
       if (operation != ScienceOperation.Set && operation != ScienceOperation.Add && operation != ScienceOperation.Subtract) {
-        result.Message = "不支持的科研操作。"; return result;
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0123"); return result;
       }
       int amount;
       if (input == null || input.Length > 32 || !int.TryParse(input.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out amount)
           || amount < 0 || amount > InputLimit) {
-        result.Message = "请输入零至十亿之间的整数，不接受负数、小数或其他字符。";
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0307");
         return result;
       }
       int before;
-      if (!TryRead(out before)) { result.Message = "无法读取游戏真实科研点数，未执行修改。"; return result; }
+      if (!TryRead(out before)) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0384"); return result; }
       result.Before = before;
       long expected = operation == ScienceOperation.Set ? amount
         : operation == ScienceOperation.Add ? (long)before + amount : (long)before - amount;
-      if (expected < 0) { result.After = before; result.Message = "减少数量超过当前科研点数，未执行修改。"; return result; }
+      if (expected < 0) { result.After = before; result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0211"); return result; }
       if (operation != ScienceOperation.Subtract && expected > InputLimit) {
-        result.After = before; result.Message = "修改后的科研点数将超过十亿上限，未执行修改。"; return result;
+        result.After = before; result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0397"); return result;
       }
       var delta = expected - before;
       try {
@@ -68,23 +68,23 @@ namespace TimberbornTrainer.Modules {
       } catch {
         _commandError = true;
         try { result.After = _points.Read(); } catch { }
-        result.Message = "科研接口调用失败，可能已部分生效。请核对真实点数，不要直接重复操作。";
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0245");
         return result;
       }
       int after;
       if (!TryRead(out after)) {
-        result.Message = "接口已调用，但无法读取修改后数值，不能确认成功；请勿重复执行。";
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0217");
         return result;
       }
       result.After = after;
       if (after != expected) {
         _commandError = true;
-        result.Message = "游戏实际点数与预期不一致，不能确认成功。请核对游戏界面。";
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0418");
         return result;
       }
       result.Success = true;
       _commandError = false;
-      result.Message = delta == 0 ? "成功：数值未变化，未调用增减接口。" : "成功：已回读游戏真实科研点数。";
+      result.Message = delta == 0 ? global::TimberbornTrainer.Localization.TextToken.Key("t0145") : global::TimberbornTrainer.Localization.TextToken.Key("t0147");
       return result;
     }
   }

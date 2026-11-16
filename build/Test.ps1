@@ -12,11 +12,12 @@ $references = @($references | Where-Object { [IO.Path]::GetFileName($_) -ne 'New
 $testRoot = Join-Path $projectRoot ('TestResults/' + $Language)
 [IO.Directory]::CreateDirectory($testRoot) | Out-Null
 $testDll = Join-Path $testRoot 'TimberbornTrainer.ConfigTests.dll'
-$sources = @('Core/Config.cs','Core/TrainerState.cs','Core/RuntimeApiChecks.cs','Modules/ScienceCommands.cs','Modules/ConstructionCommands.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/CompatibilityTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
+$sources = @('Core/TextToken.cs','Core/RuntimeText.cs','Core/Config.cs','Core/TrainerState.cs','Core/RuntimeApiChecks.cs','Modules/ScienceCommands.cs','Modules/ConstructionCommands.cs','Modules/InventoryCommands.cs','Modules/NeedLock.cs','Modules/InventoryDescription.cs','Modules/InventoryBrowser.cs','Tests/RuntimeLocalizationTests.cs','Tests/LocalizedAssertions.cs','Tests/InventoryBrowserTests.cs','Tests/ConfigTests.cs','Tests/ScienceTests.cs','Tests/CompatibilityTests.cs','Tests/ConstructionTests.cs','Tests/SurvivalTests.cs') | ForEach-Object {Join-Path $projectRoot $_}
 Invoke-SourceCompilation -Sources $sources -References $references -Output $testDll -Name 'TimberbornTrainer.ConfigTests'
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($jsonDll) | Out-Null
 [Reflection.Assembly]::LoadFrom($testDll) | Out-Null
+[TimberbornTrainer.Localization.RuntimeText]::Configure((Join-Path $projectRoot 'Languages'), (Join-Path $testRoot 'language-test.json'), $(if ($Language -eq 'en') { 'en-US' } else { 'zh-CN' }))
 $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.ConfigTests]::Run($isolated)
 [TimberbornTrainer.Tests.ScienceTests]::Run()
@@ -42,13 +43,14 @@ if (!$CompileOnly) {
 [TimberbornTrainer.Tests.MapSelectionTests]::Run()
 }
 $planDll = Join-Path $testRoot 'TimberbornTrainer.InventoryWritePlanTests.dll'
-$planSources = @('Modules/InventoryWritePlan.cs','Tests/InventoryWritePlanTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$planSources = @('Core/TextToken.cs','Tests/LocalizedAssertions.cs','Modules/InventoryWritePlan.cs','Tests/InventoryWritePlanTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 # Standalone pure layer: no game DLL, Newtonsoft, Unity or fake game types in references.
 $planReferences = @(([string][AppContext]::GetData('TRUSTED_PLATFORM_ASSEMBLIES')).Split([IO.Path]::PathSeparator))
 $planReferences = @($planReferences | Where-Object { [IO.Path]::GetFileName($_) -ne 'Newtonsoft.Json.dll' })
 Invoke-SourceCompilation -Sources $planSources -References $planReferences -Output $planDll -Name 'TimberbornTrainer.InventoryWritePlanTests'
 if (!$CompileOnly) {
-[Reflection.Assembly]::LoadFrom($planDll) | Out-Null
+$planAssembly = [Reflection.Assembly]::LoadFrom($planDll)
+$planAssembly.GetType('TimberbornTrainer.Localization.TextToken').GetField('Display').SetValue($null, [Func[string,string]] { param($value) [TimberbornTrainer.Localization.RuntimeText]::Render($value) })
 [TimberbornTrainer.Tests.InventoryWritePlanTests]::Run()
 }
 $editDll = Join-Path $testRoot 'TimberbornTrainer.InventoryEditTests.dll'
@@ -59,7 +61,7 @@ if (!$CompileOnly) {
   [TimberbornTrainer.Tests.InventoryEditTests]::Run()
 }
 $uiDll = Join-Path $testRoot 'TimberbornTrainer.ResourceUiTests.dll'
-$uiSources = @('UI/MainPanel.cs','UI/FloatingWindow.cs','UI/FloatingWindowState.cs','UI/EdgeTabGesture.cs','UI/InventoryPanel.cs','UI/MapInventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/MapInventorySource.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs','Tests/FloatingWindowTests.cs','Tests/EdgeTabTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
+$uiSources = @('UI/LocalizedControls.cs','UI/MainPanel.cs','UI/FloatingWindow.cs','UI/FloatingWindowState.cs','UI/EdgeTabGesture.cs','UI/InventoryPanel.cs','UI/MapInventoryPanel.cs','UI/ControlStyles.cs','UI/Localization/Chinese.cs','Modules/MapInventorySource.cs','Modules/InventoryEditCommands.cs','Modules/InventoryWritePlan.cs','Modules/InventorySafetyReport.cs','Modules/InventoryTimingTrace.cs','Tests/UiTestDoubles.cs','Tests/ResourceUiTests.cs','Tests/FloatingWindowTests.cs','Tests/EdgeTabTests.cs','Tests/RuntimeUiLocalizationTests.cs') | ForEach-Object { Join-Path $projectRoot $_ }
 Invoke-SourceCompilation -Sources $uiSources -References @($references + @($testDll)) -Output $uiDll -Name 'TimberbornTrainer.ResourceUiTests'
 if (!$CompileOnly) {
   [Reflection.Assembly]::LoadFrom($uiDll) | Out-Null
@@ -69,3 +71,8 @@ if (!$CompileOnly) {
 }
 
 if ($CompileOnly) { Write-Output '所有测试程序集编译完成；未加载或执行任何测试，不能记作测试通过。' }
+
+if (!$CompileOnly) {
+  [TimberbornTrainer.Tests.RuntimeLocalizationTests]::Run((Join-Path $projectRoot 'Languages'), (Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))))
+  [TimberbornTrainer.Tests.RuntimeUiLocalizationTests]::Run((Join-Path $projectRoot 'Languages'), (Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))))
+}

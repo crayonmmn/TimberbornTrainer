@@ -93,30 +93,30 @@ namespace TimberbornTrainer.Modules {
       && Present(id.OwnerInstance) && Present(id.Inventory) && Present(id.Component) && Present(id.ComponentInstance)
       && Present(id.District) && Present(id.Resource);
     internal static InventoryWriteValidation Capability(InventoryPermission permission, string operation) {
-      if (permission == InventoryPermission.Allowed) return new InventoryWriteValidation("OK", "预检查通过，尚未执行。");
+      if (permission == InventoryPermission.Allowed) return new InventoryWriteValidation("OK", global::TimberbornTrainer.Localization.TextToken.Key("t0422"));
       return Reject(permission == InventoryPermission.Denied ? "CapabilityDenied" : "CapabilityUnknown",
-        operation + (permission == InventoryPermission.Denied ? "能力不可用。" : "能力未知。"));
+        operation + (permission == InventoryPermission.Denied ? global::TimberbornTrainer.Localization.TextToken.Key("t0285") : global::TimberbornTrainer.Localization.TextToken.Key("t0286")));
     }
     public static InventoryWriteValidation Validate(InventoryWriteRequest request, InventoryWriteSnapshot snapshot) {
-      if (request == null || snapshot == null) return Reject("MissingInput", "请求或库存快照缺失。");
-      if (!Enum.IsDefined(typeof(InventoryWriteOperation), request.Operation)) return Reject("UnknownOperation", "操作类型未知。");
+      if (request == null || snapshot == null) return Reject("MissingInput", global::TimberbornTrainer.Localization.TextToken.Key("t0304"));
+      if (!Enum.IsDefined(typeof(InventoryWriteOperation), request.Operation)) return Reject("UnknownOperation", global::TimberbornTrainer.Localization.TextToken.Key("t0131"));
       var expected = request.Target; var actual = snapshot.Identity;
-      if (!Complete(expected) || !Complete(actual)) return Reject("MissingIdentity", "场景、实体、组件实例、地区或资源身份缺失。");
-      if (expected.Scene != actual.Scene) return Reject("SceneChanged", "场景已切换，请重新选择。");
-      if (expected.Entity != actual.Entity || expected.OwnerInstance != actual.OwnerInstance) return Reject("EntityChanged", "建筑实体已变化或已重建。");
-      if (expected.Inventory != actual.Inventory || expected.Component != actual.Component) return Reject("InventoryChanged", "库存身份不一致。");
-      if (expected.ComponentInstance != actual.ComponentInstance) return Reject("ComponentReplaced", "库存组件已替换。");
-      if (expected.Use != actual.Use) return Reject("UseChanged", "库存用途已变化。");
-      if (expected.District != actual.District) return Reject("DistrictChanged", "地区归属已变化。");
-      if (expected.Resource != actual.Resource) return Reject("ResourceChanged", "资源身份不一致。");
-      if (actual.Use != InventoryUse.Warehouse) return Reject("UnsupportedUse", "仅明确识别的普通仓储可进行写入预检查。");
-      if (!Present(snapshot.SnapshotId)) return Reject("UnknownSnapshot", "快照有效性标识缺失。");
-      if (snapshot.Valid != true) return Reject("InvalidTarget", "目标已失效或有效性未知。");
+      if (!Complete(expected) || !Complete(actual)) return Reject("MissingIdentity", global::TimberbornTrainer.Localization.TextToken.Key("t0136"));
+      if (expected.Scene != actual.Scene) return Reject("SceneChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0140"));
+      if (expected.Entity != actual.Entity || expected.OwnerInstance != actual.OwnerInstance) return Reject("EntityChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0213"));
+      if (expected.Inventory != actual.Inventory || expected.Component != actual.Component) return Reject("InventoryChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0252"));
+      if (expected.ComponentInstance != actual.ComponentInstance) return Reject("ComponentReplaced", global::TimberbornTrainer.Localization.TextToken.Key("t0259"));
+      if (expected.Use != actual.Use) return Reject("UseChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0256"));
+      if (expected.District != actual.District) return Reject("DistrictChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0167"));
+      if (expected.Resource != actual.Resource) return Reject("ResourceChanged", global::TimberbornTrainer.Localization.TextToken.Key("t0469"));
+      if (actual.Use != InventoryUse.Warehouse) return Reject("UnsupportedUse", global::TimberbornTrainer.Localization.TextToken.Key("t0228"));
+      if (!Present(snapshot.SnapshotId)) return Reject("UnknownSnapshot", global::TimberbornTrainer.Localization.TextToken.Key("t0261"));
+      if (snapshot.Valid != true) return Reject("InvalidTarget", global::TimberbornTrainer.Localization.TextToken.Key("t0282"));
       if (snapshot.Finished != true || snapshot.Enabled != true || snapshot.VerifiedNativeWarehouse != true)
-        return Reject("UnsafeWarehouse", "未确认已完工、启用的原生普通仓储身份。");
-      if (snapshot.ResourceRegistered != true) return Reject("UnknownResource", "资源未注册或注册状态未知。");
-      if (snapshot.Capabilities == null) return Reject("CapabilityUnknown", "操作能力缺失。");
-      var read = Capability(snapshot.Capabilities.Read, "读取");
+        return Reject("UnsafeWarehouse", global::TimberbornTrainer.Localization.TextToken.Key("t0369"));
+      if (snapshot.ResourceRegistered != true) return Reject("UnknownResource", global::TimberbornTrainer.Localization.TextToken.Key("t0471"));
+      if (snapshot.Capabilities == null) return Reject("CapabilityUnknown", global::TimberbornTrainer.Localization.TextToken.Key("t0132"));
+      var read = Capability(snapshot.Capabilities.Read, global::TimberbornTrainer.Localization.TextToken.Key("t0177"));
       return !read.Accepted ? read : Capability(snapshot.Capabilities.For(request.Operation), request.Operation.ToString());
     }
   }
@@ -124,7 +124,7 @@ namespace TimberbornTrainer.Modules {
   public sealed class InventoryWritePlan {
     public InventoryWriteRequest Request { get; }
     public InventoryWriteIdentity Target => Request?.Target;
-    public string TargetSummary => Target == null ? "目标缺失" : Target.Scene + " / " + Target.Entity + " / "
+    public string TargetSummary => Target == null ? global::TimberbornTrainer.Localization.TextToken.Key("t0278") : Target.Scene + " / " + Target.Entity + " / "
       + Target.Component + " / " + Target.ComponentInstance + " / " + Target.District + " / " + Target.Resource;
     public string SnapshotId { get; }
     public InventoryWriteState State { get; }
@@ -139,7 +139,7 @@ namespace TimberbornTrainer.Modules {
     internal InventoryWritePlan(InventoryWriteRequest request, InventoryWriteSnapshot snapshot,
         InventoryWriteState state, InventoryWriteValidation validation, long? expected = null, long delta = 0) {
       if (state != InventoryWriteState.Planned && state != InventoryWriteState.NoOp && state != InventoryWriteState.Rejected)
-        throw new ArgumentOutOfRangeException(nameof(state), "计划不能表示执行结果。");
+        throw new ArgumentOutOfRangeException(nameof(state), global::TimberbornTrainer.Localization.TextToken.Key("t0206"));
       Request = request; SnapshotId = snapshot?.SnapshotId; Before = snapshot?.Amount;
       State = state; Validation = validation; ExpectedAfter = expected; Delta = delta;
     }
@@ -152,18 +152,18 @@ namespace TimberbornTrainer.Modules {
       Func<string, string, InventoryWritePlan> reject = (code, reason) => new InventoryWritePlan(request, snapshot,
         InventoryWriteState.Rejected, InventoryWriteTargetValidator.Reject(code, reason));
       long n = request.Quantity;
-      if (n < 0 || n > int.MaxValue) return reject("InvalidQuantity", "数量必须在非负原生整数范围内。");
+      if (n < 0 || n > int.MaxValue) return reject("InvalidQuantity", global::TimberbornTrainer.Localization.TextToken.Key("t0355"));
       if ((request.Operation == InventoryWriteOperation.Add || request.Operation == InventoryWriteOperation.Remove) && n == 0)
-        return reject("PositiveQuantityRequired", "增加和减少数量必须大于零。");
-      if (request.Operation == InventoryWriteOperation.Clear && n != 0) return reject("ClearTargetMustBeZero", "清空的目标数量必须为零。");
-      if (!snapshot.Amount.HasValue || !snapshot.Unreserved.HasValue) return reject("UnknownStock", "实际数量或未预留数量未知。");
+        return reject("PositiveQuantityRequired", global::TimberbornTrainer.Localization.TextToken.Key("t0448"));
+      if (request.Operation == InventoryWriteOperation.Clear && n != 0) return reject("ClearTargetMustBeZero", global::TimberbornTrainer.Localization.TextToken.Key("t0301"));
+      if (!snapshot.Amount.HasValue || !snapshot.Unreserved.HasValue) return reject("UnknownStock", global::TimberbornTrainer.Localization.TextToken.Key("t0348"));
       long before = snapshot.Amount.Value, unreserved = snapshot.Unreserved.Value;
       if (before < 0 || before > int.MaxValue || unreserved < 0 || unreserved > before)
-        return reject("InvalidStock", "库存或预留数量不自洽。");
+        return reject("InvalidStock", global::TimberbornTrainer.Localization.TextToken.Key("t0251"));
       if (snapshot.FreeCapacity.HasValue && (snapshot.FreeCapacity < 0 || snapshot.FreeCapacity > int.MaxValue))
-        return reject("InvalidCapacity", "未预留容量超出原生范围。");
+        return reject("InvalidCapacity", global::TimberbornTrainer.Localization.TextToken.Key("t0374"));
       if (snapshot.TotalAmount.HasValue && (snapshot.TotalAmount < before || snapshot.TotalAmount > int.MaxValue))
-        return reject("InvalidTotal", "库存共享总量不自洽。");
+        return reject("InvalidTotal", global::TimberbornTrainer.Localization.TextToken.Key("t0249"));
       long target;
       switch (request.Operation) {
         case InventoryWriteOperation.Add: target = before + n; break;
@@ -171,23 +171,23 @@ namespace TimberbornTrainer.Modules {
         case InventoryWriteOperation.Set: target = n; break;
         default: target = 0; break;
       }
-      if (target < 0) return reject("InsufficientStock", "实际库存不足，整单拒绝。");
-      if (target > int.MaxValue) return reject("Overflow", "目标数量超过原生整数范围。");
+      if (target < 0) return reject("InsufficientStock", global::TimberbornTrainer.Localization.TextToken.Key("t0347"));
+      if (target > int.MaxValue) return reject("Overflow", global::TimberbornTrainer.Localization.TextToken.Key("t0279"));
       long delta = target - before;
       if (delta > 0) {
-        var capability = InventoryWriteTargetValidator.Capability(snapshot.Capabilities.Add, "增加");
+        var capability = InventoryWriteTargetValidator.Capability(snapshot.Capabilities.Add, global::TimberbornTrainer.Localization.TextToken.Key("t0446"));
         if (!capability.Accepted) return new InventoryWritePlan(request, snapshot, InventoryWriteState.Rejected, capability);
-        if (snapshot.ResourceAllowed != true) return reject("ResourceNotAllowed", "资源不允许进入该库存或允许状态未知。");
-        if (!snapshot.FreeCapacity.HasValue || !snapshot.TotalAmount.HasValue) return reject("UnknownCapacity", "未预留容量或共享总量未知。");
-        if (delta > snapshot.FreeCapacity.Value) return reject("InsufficientCapacity", "未预留容量不足，整单拒绝。");
-        if (snapshot.TotalAmount.Value + delta > int.MaxValue) return reject("Overflow", "共享总量超过原生整数范围。");
+        if (snapshot.ResourceAllowed != true) return reject("ResourceNotAllowed", global::TimberbornTrainer.Localization.TextToken.Key("t0467"));
+        if (!snapshot.FreeCapacity.HasValue || !snapshot.TotalAmount.HasValue) return reject("UnknownCapacity", global::TimberbornTrainer.Localization.TextToken.Key("t0375"));
+        if (delta > snapshot.FreeCapacity.Value) return reject("InsufficientCapacity", global::TimberbornTrainer.Localization.TextToken.Key("t0372"));
+        if (snapshot.TotalAmount.Value + delta > int.MaxValue) return reject("Overflow", global::TimberbornTrainer.Localization.TextToken.Key("t0189"));
       } else if (delta < 0) {
-        var capability = InventoryWriteTargetValidator.Capability(snapshot.Capabilities.Remove, "减少");
+        var capability = InventoryWriteTargetValidator.Capability(snapshot.Capabilities.Remove, global::TimberbornTrainer.Localization.TextToken.Key("t0208"));
         if (!capability.Accepted) return new InventoryWritePlan(request, snapshot, InventoryWriteState.Rejected, capability);
-        if (-delta > unreserved) return reject("ReservedStock", "不能移除已预留物品，整单拒绝。");
+        if (-delta > unreserved) return reject("ReservedStock", global::TimberbornTrainer.Localization.TextToken.Key("t0120"));
       }
       return new InventoryWritePlan(request, snapshot, delta == 0 ? InventoryWriteState.NoOp : InventoryWriteState.Planned,
-        new InventoryWriteValidation("OK", delta == 0 ? "无需修改，尚未执行任何操作。" : "计划通过；执行前必须读取实时状态重新校验。"), target, delta);
+        new InventoryWriteValidation("OK", delta == 0 ? global::TimberbornTrainer.Localization.TextToken.Key("t0391") : global::TimberbornTrainer.Localization.TextToken.Key("t0207")), target, delta);
     }
   }
 
@@ -206,7 +206,7 @@ namespace TimberbornTrainer.Modules {
       return new InventoryWriteResult(plan.State, plan.Validation.Reason, null);
     }
     public static InventoryWriteResult UnconfirmedObservation(string message, long? after = null) =>
-      new InventoryWriteResult(InventoryWriteState.Indeterminate, message ?? "结果无法确认；不得自动重试或回滚。", after);
+      new InventoryWriteResult(InventoryWriteState.Indeterminate, message ?? global::TimberbornTrainer.Localization.TextToken.Key("t0220"), after);
   }
 
   // Future implementation must resolve native references, verify their actual ownership/roles,

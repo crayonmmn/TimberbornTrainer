@@ -22,17 +22,17 @@ namespace TimberbornTrainer.Modules {
         if (!_active) return;
         long now = Stopwatch.GetTimestamp();
         if (_events.Count >= Limit || (now - _started) / (double)Stopwatch.Frequency >= 10) { _active = false; return; }
-        _events.Add("序号=" + (_events.Count + 1) + "；场景=" + _scene + "；事件=" + kind
-          + "；线程=" + Thread.CurrentThread.ManagedThreadId + "；探针Tick=" + tick
-          + "；单调时间=" + now + "；频率=" + Stopwatch.Frequency + "；原生并行状态=未知");
+        _events.Add(global::TimberbornTrainer.Localization.TextToken.Key("t0404") + (_events.Count + 1) + global::TimberbornTrainer.Localization.TextToken.Key("t0041") + _scene + global::TimberbornTrainer.Localization.TextToken.Key("t0068") + kind
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0075") + Thread.CurrentThread.ManagedThreadId + global::TimberbornTrainer.Localization.TextToken.Key("t0071") + tick
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0042") + now + global::TimberbornTrainer.Localization.TextToken.Key("t0060") + Stopwatch.Frequency + global::TimberbornTrainer.Localization.TextToken.Key("t0083"));
       }
     }
     public string Stop() {
       lock (_gate) { Record("Trace.Stop", 0); _active = false; return Summary(); }
     }
     public string Summary() {
-      lock (_gate) { return "只读时序记录 " + _events.Count + "/" + Limit
-        + " 条，最长10秒；不证明原生库存互斥。\n" + string.Join("\n", _events); }
+      lock (_gate) { return global::TimberbornTrainer.Localization.TextToken.Key("t0456") + _events.Count + "/" + Limit
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0028") + string.Join("\n", _events); }
     }
     public void Clear() { lock (_gate) { _active = false; _scene = null; _events.Clear(); } }
   }

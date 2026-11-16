@@ -8,15 +8,15 @@ using UnityEngine.UIElements;
 namespace TimberbornTrainer.UI {
   internal sealed class InventoryPanel : VisualElement {
     private readonly InventoryBrowser _browser;
-    private readonly DropdownField _source, _inventory, _good;
+    private readonly LocalizedDropdown _source, _inventory, _good;
     private readonly ScrollView _buildings;
     private readonly VisualElement _selector;
     private readonly ActionButton _changeTarget, _focusTarget;
-    private readonly Label _status, _target, _stock, _abilities, _scanStatus, _safety;
+    private readonly LocalizedLabel _status, _target, _stock, _abilities, _scanStatus, _safety;
     private readonly IInventorySafetyDiagnostics _diagnostics;
     private readonly IInventoryEditor _editor;
     private readonly TextField _editAmount;
-    private readonly Label _editResult;
+    private readonly LocalizedLabel _editResult;
     private readonly ActionButton _openList, _scan;
     private readonly ActionButton _add, _remove, _set, _clear;
     private InventoryTarget[] _ownerInventories = Array.Empty<InventoryTarget>();
@@ -28,59 +28,59 @@ namespace TimberbornTrainer.UI {
       _browser = new InventoryBrowser(catalog);
       _diagnostics = catalog as IInventorySafetyDiagnostics;
       _editor = editor;
-      Add(ControlStyles.Text("通用库存管理"));
-      _target = ControlStyles.Text("尚未选择有效库存，请点击更换目标。");
+      Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0362")));
+      _target = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0335"));
       _target.name = "InventorySelectionSummary"; Add(_target);
       var selectionActions = ControlStyles.Row();
-      _changeTarget = new ActionButton("更换目标", () => SetSelectionExpanded(_selector.style.display.value == DisplayStyle.None)) { name = "InventoryChangeTarget" };
+      _changeTarget = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0188"), () => SetSelectionExpanded(_selector.style.display.value == DisplayStyle.None)) { name = "InventoryChangeTarget" };
       selectionActions.Add(_changeTarget);
-      _focusTarget = new ActionButton("定位目标", () => {
+      _focusTarget = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0176"), () => {
         var target = _browser.Snapshot?.Target;
         bool focused = target != null && _browser.Focus(target.Id);
         if (!focused) RenderTargets();
-        _status.text = focused ? "已请求原生镜头定位和高亮。" : _browser.Message;
+        _status.text = focused ? global::TimberbornTrainer.Localization.TextToken.Key("t0410") : _browser.Message;
       });
       selectionActions.Add(_focusTarget);
-      selectionActions.Add(new ActionButton("主动刷新", RefreshSelected)); Add(selectionActions);
+      selectionActions.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0462"), RefreshSelected)); Add(selectionActions);
       _selector = new VisualElement { name = "InventorySelector" }; Add(_selector);
       _selector.style.display = DisplayStyle.None;
-      _source = Field("目标类型", new List<string> { "聚居地资源统计（只读）", "指定地区中心", "指定建筑库存" });
+      _source = Field(global::TimberbornTrainer.Localization.TextToken.Key("t0277"), new List<string> { global::TimberbornTrainer.Localization.TextToken.Key("t0240"), global::TimberbornTrainer.Localization.TextToken.Key("t0459"), global::TimberbornTrainer.Localization.TextToken.Key("t0460") });
       _source.name = "InventorySource"; _selector.Add(_source);
       var actions = ControlStyles.Row();
-      _scan = new ActionButton("扫描资源与库存", Scan) { name = "InventoryScan" }; actions.Add(_scan);
-      _openList = new ActionButton("打开建筑列表", Discover); actions.Add(_openList);
+      _scan = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0332"), Scan) { name = "InventoryScan" }; actions.Add(_scan);
+      _openList = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0150"), Discover); actions.Add(_openList);
       _selector.Add(actions);
-      _scanStatus = ControlStyles.Text("尚未扫描；打开列表不会自动扫描场景。"); _selector.Add(_scanStatus);
-      _status = ControlStyles.Text("打开页面后按需读取，不后台扫描库存。"); Add(_status);
+      _scanStatus = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0333")); _selector.Add(_scanStatus);
+      _status = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0151")); Add(_status);
       _status.style.minHeight = 50;
       _buildings = new ScrollView(); _buildings.style.maxHeight = 110; _selector.Add(_buildings);
-      _inventory = Field("具体库存", new List<string> { "请选择目标" }); _selector.Add(_inventory);
+      _inventory = Field(global::TimberbornTrainer.Localization.TextToken.Key("t0234"), new List<string> { global::TimberbornTrainer.Localization.TextToken.Key("t0314") }); _selector.Add(_inventory);
       _inventory.name = "InventoryTarget";
-      _good = Field("资源", new List<string> { "请选择库存" }); Add(_good);
+      _good = Field(global::TimberbornTrainer.Localization.TextToken.Key("t0464"), new List<string> { global::TimberbornTrainer.Localization.TextToken.Key("t0313") }); Add(_good);
       _good.name = "InventoryResource";
-      _good.tooltip = "仅列出本库存声明支持及实际残留的资源；未列出不等于游戏未注册。缺少显示名称时保留原生ID。";
+      _good.tooltip = global::TimberbornTrainer.Localization.TextToken.Key("t0227");
       _stock = ControlStyles.Text(""); Add(_stock);
-      Add(ControlStyles.Text("库存编辑：请先手动暂停游戏并开启全局修改器。修改后保持暂停。"));
-      _editAmount = ControlStyles.Input("数量／目标值", "10"); _editAmount.name = "InventoryAmount"; Add(_editAmount);
+      Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0248")));
+      _editAmount = ControlStyles.Input(global::TimberbornTrainer.Localization.TextToken.Key("t0354"), "10"); _editAmount.name = "InventoryAmount"; Add(_editAmount);
       var editActions = ControlStyles.Row();
-      _add = new ActionButton("增加", () => Edit(InventoryWriteOperation.Add)) { name = "InventoryAdd" }; editActions.Add(_add);
-      _remove = new ActionButton("减少", () => Edit(InventoryWriteOperation.Remove)) { name = "InventoryRemove" }; editActions.Add(_remove);
-      _set = new ActionButton("设置目标", () => Edit(InventoryWriteOperation.Set)) { name = "InventorySet" }; editActions.Add(_set);
-      _clear = new ActionButton("清空资源", () => Edit(InventoryWriteOperation.Clear)) { name = "InventoryClear" }; editActions.Add(_clear);
+      _add = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0446"), () => Edit(InventoryWriteOperation.Add)) { name = "InventoryAdd" }; editActions.Add(_add);
+      _remove = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0208"), () => Edit(InventoryWriteOperation.Remove)) { name = "InventoryRemove" }; editActions.Add(_remove);
+      _set = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0341"), () => Edit(InventoryWriteOperation.Set)) { name = "InventorySet" }; editActions.Add(_set);
+      _clear = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0302"), () => Edit(InventoryWriteOperation.Clear)) { name = "InventoryClear" }; editActions.Add(_clear);
       Add(editActions);
-      _editResult = ControlStyles.Text("尚未执行库存命令。超出原生未预留范围将整单拒绝，不会自动缩减数量。"); Add(_editResult);
+      _editResult = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0337")); Add(_editResult);
       _editResult.name = "InventoryEditResult"; _stock.name = "InventoryStock";
-      _abilities = ControlStyles.Text("请先选择真实库存；聚居地统计只读。"); Add(_abilities);
-      var diagnostics = new Foldout { text = "开发诊断（只读，可选）", value = false }; Add(diagnostics);
-      var diagnose = new ActionButton("读取安全诊断（只读）", Diagnose); diagnostics.Add(diagnose);
+      _abilities = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0312")); Add(_abilities);
+      var diagnostics = new LocalizedFoldout { text = global::TimberbornTrainer.Localization.TextToken.Key("t0241"), value = false }; Add(diagnostics);
+      var diagnose = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0179"), Diagnose); diagnostics.Add(diagnose);
       diagnose.Available(_diagnostics != null);
-      _safety = ControlStyles.Text("安全诊断未读取；仅主动点击时检查选中库存，不授予写入权限。"); diagnostics.Add(_safety);
+      _safety = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0109")); diagnostics.Add(_safety);
       var timing = catalog as IInventoryTimingDiagnostics;
       var traceRow = ControlStyles.Row();
-      traceRow.Add(new ActionButton("开始时序记录（10秒上限）", () => { timing?.StartTiming(); _safety.text = "只读时序记录已开始；无库存操作，最多256条。"; }));
-      traceRow.Add(new ActionButton("停止并查看时序", () => {
-        string text = timing?.StopTiming() ?? "当前服务不支持时序记录。";
-        _safety.text = string.Join("\n", text.Split('\n').Take(8)) + "\n完整记录已写入游戏日志；不证明安全执行点。";
+      traceRow.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0242"), () => { timing?.StartTiming(); _safety.text = global::TimberbornTrainer.Localization.TextToken.Key("t0457"); }));
+      traceRow.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0361"), () => {
+        string text = timing?.StopTiming() ?? global::TimberbornTrainer.Localization.TextToken.Key("t0155");
+        _safety.text = string.Join("\n", text.Split('\n').Take(8)) + global::TimberbornTrainer.Localization.TextToken.Key("t0010");
         _safety.tooltip = text;
       }));
       diagnostics.Add(traceRow);
@@ -105,8 +105,8 @@ namespace TimberbornTrainer.UI {
       _focusTarget.Available(false);
       PaintEditButtons();
     }
-    private static DropdownField Field(string label, List<string> choices) {
-      var field = new DropdownField(label, choices, 0);
+    private static LocalizedDropdown Field(string label, List<string> choices) {
+      var field = new LocalizedDropdown(label, choices, 0);
       field.style.minHeight = 30; field.labelElement.style.color = ControlStyles.Light;
       var input = field.Q(className: "unity-base-popup-field__input");
       if (input != null) { input.style.backgroundColor = new Color(.1f, .2f, .18f); input.style.color = ControlStyles.Light; ControlStyles.Border(input, ControlStyles.Muted); }
@@ -121,7 +121,7 @@ namespace TimberbornTrainer.UI {
     }
     private void SetSelectionExpanded(bool expanded) {
       _selector.style.display = expanded ? DisplayStyle.Flex : DisplayStyle.None;
-      _changeTarget.text = expanded ? "收起选择器" : "更换目标";
+      _changeTarget.text = expanded ? global::TimberbornTrainer.Localization.TextToken.Key("t0352") : global::TimberbornTrainer.Localization.TextToken.Key("t0188");
     }
     private void Discover() {
       if (_disposed) return;
@@ -142,21 +142,21 @@ namespace TimberbornTrainer.UI {
     private void RenderTargets() {
       _buildings.Clear(); _ownerInventories = Array.Empty<InventoryTarget>();
       bool settlement = _browser.Source == InventorySource.Settlement;
-      _openList.text = _browser.Source == InventorySource.Building ? "打开建筑列表" : "打开地区中心列表";
+      _openList.text = _browser.Source == InventorySource.Building ? global::TimberbornTrainer.Localization.TextToken.Key("t0150") : global::TimberbornTrainer.Localization.TextToken.Key("t0149");
       _openList.Available(!settlement);
       _buildings.style.display = settlement ? DisplayStyle.None : DisplayStyle.Flex;
       foreach (var grouping in _browser.Targets.GroupBy(t => t.OwnerId)) {
         var owner = grouping.First();
-        var button = new ActionButton(owner.OwnerName + " · " + owner.BuildingType + " · " + grouping.Count() + " 个库存",
+        var button = new ActionButton(owner.OwnerName + " · " + owner.BuildingType + " · " + grouping.Count() + global::TimberbornTrainer.Localization.TextToken.Key("t0024"),
           () => SelectOwner(owner.OwnerId));
         button.name = "InventoryOwner:" + owner.OwnerId;
         button.style.whiteSpace = WhiteSpace.Normal;
-        button.tooltip = "单击选择；双击使用游戏原生定位与高亮。";
+        button.tooltip = global::TimberbornTrainer.Localization.TextToken.Key("t0153");
         button.RegisterCallback<ClickEvent>(e => {
           if (e.clickCount == 2 && !_disposed) {
             bool focused = _browser.Focus(owner.Id);
             if (!focused) RenderTargets();
-            _status.text = focused ? "已请求原生镜头定位和高亮。" : _browser.Message;
+            _status.text = focused ? global::TimberbornTrainer.Localization.TextToken.Key("t0410") : _browser.Message;
           }
         });
         _buildings.Add(button);
@@ -169,7 +169,7 @@ namespace TimberbornTrainer.UI {
       _ownerInventories = _browser.Targets.Where(t => t.OwnerId == ownerId).ToArray();
       _painting = true;
       _inventory.choices = _ownerInventories.Select(t => t.DisplayName).ToList();
-      if (_inventory.choices.Count == 0) _inventory.choices.Add("没有有效库存");
+      if (_inventory.choices.Count == 0) _inventory.choices.Add(global::TimberbornTrainer.Localization.TextToken.Key("t0268"));
       int selected = Array.FindIndex(_ownerInventories, t => t.Id == _browser.Snapshot?.Target?.Id);
       _inventory.SetValueWithoutNotify(_inventory.choices[Math.Max(0, selected)]);
       _painting = false;
@@ -180,81 +180,81 @@ namespace TimberbornTrainer.UI {
     private void RenderSnapshot() {
       _status.text = _browser.Message;
       var scan = _browser.LastScan;
-      _scan.text = scan == null ? "扫描资源与库存" : "重新扫描";
-      _scanStatus.text = scan == null ? "尚未扫描；请主动扫描后再打开列表。"
-        : "第 " + scan.Sequence + " 次扫描；耗时 " + scan.ElapsedMilliseconds.ToString("F1") + " 毫秒；" + (scan.Completed ? "完成" : "失败")
-          + "\n注册资源 " + scan.RegisteredResources + "；检查实体 " + scan.InspectedEntities + "；原生建筑 " + scan.RecognizedBuildings
-          + "\n有可读库存建筑 " + scan.InventoryBuildings + "；可读库存 " + scan.ReadableInventories + "；有效地区中心 " + scan.DistrictCenters
-          + "\n排除对象 " + scan.ExcludedObjects + "；排除库存 " + scan.ExcludedInventories
-          + (scan.ExclusionReasons.Length == 0 ? "" : "\n" + string.Join("；", scan.ExclusionReasons));
+      _scan.text = scan == null ? global::TimberbornTrainer.Localization.TextToken.Key("t0332") : global::TimberbornTrainer.Localization.TextToken.Key("t0461");
+      _scanStatus.text = scan == null ? global::TimberbornTrainer.Localization.TextToken.Key("t0334")
+        : global::TimberbornTrainer.Localization.TextToken.Key("t0174") + scan.Sequence + global::TimberbornTrainer.Localization.TextToken.Key("t0022") + scan.ElapsedMilliseconds.ToString("F1") + global::TimberbornTrainer.Localization.TextToken.Key("t0025") + (scan.Completed ? global::TimberbornTrainer.Localization.TextToken.Key("t0366") : global::TimberbornTrainer.Localization.TextToken.Key("t0344"))
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0017") + scan.RegisteredResources + global::TimberbornTrainer.Localization.TextToken.Key("t0048") + scan.InspectedEntities + global::TimberbornTrainer.Localization.TextToken.Key("t0084") + scan.RecognizedBuildings
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0014") + scan.InventoryBuildings + global::TimberbornTrainer.Localization.TextToken.Key("t0050") + scan.ReadableInventories + global::TimberbornTrainer.Localization.TextToken.Key("t0082") + scan.DistrictCenters
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0006") + scan.ExcludedObjects + global::TimberbornTrainer.Localization.TextToken.Key("t0059") + scan.ExcludedInventories
+          + (scan.ExclusionReasons.Length == 0 ? "" : "\n" + string.Join(global::TimberbornTrainer.Localization.TextToken.Key("t0040"), scan.ExclusionReasons));
       var snapshot = _browser.Snapshot;
       bool valid = snapshot != null && snapshot.Valid;
       _painting = true;
       if (!valid) {
         if (_browser.Targets.Length == 0) _buildings.Clear();
         _ownerInventories = Array.Empty<InventoryTarget>();
-        _inventory.choices = new List<string> { "请选择目标" }; _inventory.SetValueWithoutNotify("请选择目标");
+        _inventory.choices = new List<string> { global::TimberbornTrainer.Localization.TextToken.Key("t0314") }; _inventory.SetValueWithoutNotify(global::TimberbornTrainer.Localization.TextToken.Key("t0314"));
       }
       _inventory.SetEnabled(valid && _ownerInventories.Length > 1);
-      _good.choices = valid ? snapshot.Resources.Select(g => g.DisplayName + "（" + g.GoodId + "）").ToList() : new List<string>();
+      _good.choices = valid ? snapshot.Resources.Select(g => g.DisplayName + global::TimberbornTrainer.Localization.TextToken.Key("t0100") + g.GoodId + global::TimberbornTrainer.Localization.TextToken.Key("t0103")).ToList() : new List<string>();
       _resourceIds = valid ? snapshot.Resources.Select(g => g.GoodId).ToArray() : Array.Empty<string>();
-      if (_good.choices.Count == 0) _good.choices.Add("没有可显示的资源");
+      if (_good.choices.Count == 0) _good.choices.Add(global::TimberbornTrainer.Localization.TextToken.Key("t0266"));
       int goodIndex = valid ? Array.FindIndex(snapshot.Resources, r => r.GoodId == _browser.SelectedGoodId) : -1;
       if (valid && goodIndex < 0 && snapshot.Resources.Length > 0) {
-        _good.choices.Insert(0, "原资源已失效，请重新选择");
+        _good.choices.Insert(0, global::TimberbornTrainer.Localization.TextToken.Key("t0442"));
         _resourceIds = new string[] { null }.Concat(_resourceIds).ToArray();
       }
       _good.SetValueWithoutNotify(_good.choices[Math.Max(0, goodIndex)]); _good.SetEnabled(valid && snapshot.Resources.Length > 0);
       _painting = false;
-      _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : "当前没有有效目标，请点击更换目标；失效原因见下方提示。";
+      _target.text = valid ? snapshot.Target.OwnerName + " · " + snapshot.Target.DisplayName + "\n" + snapshot.Target.Purpose : global::TimberbornTrainer.Localization.TextToken.Key("t0159");
       _target.tooltip = valid ? snapshot.Target.Id : "";
       _focusTarget.Available(valid && snapshot.Target.Source != InventorySource.Settlement);
-      var abilities = valid ? snapshot.Target.Abilities : new InventoryAbilities(false, "尚未选择有效目标。");
-      _abilities.text = "读取：" + Ability(abilities.Read)
-        + "\n编辑：仅已完工普通仓储或地区中心自身输出；每次执行前实时检查角色、原引用、资源、暂停、全局开关和预留。";
+      var abilities = valid ? snapshot.Target.Abilities : new InventoryAbilities(false, global::TimberbornTrainer.Localization.TextToken.Key("t0336"));
+      _abilities.text = global::TimberbornTrainer.Localization.TextToken.Key("t0178") + Ability(abilities.Read)
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0002");
       RenderResource();
     }
-    private static string Ability(InventoryAbility ability) => (ability.Available ? "可用；" : "不可用；") + ability.Reason;
-    private static string Number(long? value) => value.HasValue ? value.Value.ToString() : "不适用／未知";
+    private static string Ability(InventoryAbility ability) => (ability.Available ? global::TimberbornTrainer.Localization.TextToken.Key("t0246") : global::TimberbornTrainer.Localization.TextToken.Key("t0118")) + ability.Reason;
+    private static string Number(long? value) => value.HasValue ? value.Value.ToString() : global::TimberbornTrainer.Localization.TextToken.Key("t0121");
     private void Edit(InventoryWriteOperation operation) {
       if (_disposed || _editor == null || !_commandsEnabled) return;
       string target = _browser.Snapshot?.Target?.Id, resource = _browser.SelectedGoodId;
-      if (target == null || resource == null) { _editResult.text = "请先选择有效库存和资源。"; return; }
+      if (target == null || resource == null) { _editResult.text = global::TimberbornTrainer.Localization.TextToken.Key("t0311"); return; }
       var result = _editor.Execute(target, resource, operation, _editAmount.value);
-      string feedback = "资源：" + resource + "；状态：" + EditState(result.State) + "\n" + result.Message
-        + "\n修改前：" + (result.Before?.ToString() ?? "未知") + "；请求变化：" + result.RequestedDelta
-        + "；真实回读：" + (result.After?.ToString() ?? "未知")
-        + "\n本次可增加上限：" + (result.MaximumAdd?.ToString() ?? "未知")
-        + "；可减少上限：" + (result.MaximumRemove?.ToString() ?? "未知");
+      string feedback = global::TimberbornTrainer.Localization.TextToken.Key("t0465") + resource + global::TimberbornTrainer.Localization.TextToken.Key("t0090") + EditState(result.State) + "\n" + result.Message
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0013") + (result.Before?.ToString() ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376")) + global::TimberbornTrainer.Localization.TextToken.Key("t0062") + result.RequestedDelta
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0089") + (result.After?.ToString() ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376"))
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0001") + (result.MaximumAdd?.ToString() ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376"))
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0052") + (result.MaximumRemove?.ToString() ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376"));
       _browser.Select(target); RenderTargets();
       _editResult.text = feedback;
     }
-    private static string EditState(InventoryWriteState state) => state == InventoryWriteState.Succeeded ? "调用返回且回读一致"
-      : state == InventoryWriteState.NoOp ? "无需修改" : state == InventoryWriteState.Indeterminate ? "结果未确认，请勿重复执行" : "拒绝，未执行";
+    private static string EditState(InventoryWriteState state) => state == InventoryWriteState.Succeeded ? global::TimberbornTrainer.Localization.TextToken.Key("t0175")
+      : state == InventoryWriteState.NoOp ? global::TimberbornTrainer.Localization.TextToken.Key("t0390") : state == InventoryWriteState.Indeterminate ? global::TimberbornTrainer.Localization.TextToken.Key("t0219") : global::TimberbornTrainer.Localization.TextToken.Key("t0233");
     private void Diagnose() {
       if (_disposed || _diagnostics == null) return;
       var snapshot = _browser.Snapshot;
       if (snapshot == null || !snapshot.Valid || _browser.SelectedGoodId == null) {
-        _safety.text = "请先选择有效建筑库存及资源。聚居地汇总不适用。"; return;
+        _safety.text = global::TimberbornTrainer.Localization.TextToken.Key("t0310"); return;
       }
       var report = _diagnostics.DiagnoseSafety(snapshot.Target.Id, _browser.SelectedGoodId);
-      string identity = report.Identity.Status == InventoryIdentityStatus.Valid ? "本次观察有效"
-        : report.Identity.Status == InventoryIdentityStatus.Invalid ? "无效" : "未知";
-      _safety.text = "只读诊断 · " + report.ObservedUtc.ToLocalTime().ToString("HH:mm:ss")
-        + "\n身份：" + identity + "；用途：" + snapshot.Target.Purpose
-        + "\n地区标识：" + report.Identity.District + "；资源：" + report.Identity.Resource
-        + "\n物品预留：" + Number(report.ReservedStock) + "；全部容量预留：" + Number(report.ReservedCapacity)
-        + "\n资源域 " + report.Rows.Count + " 种；观察自洽：" + (report.ObservationConsistent ? "是" : "否")
-        + "；完整性／同步性：未证明\n本诊断不授权写入；编辑命令另行执行实时单资源校验。"
+      string identity = report.Identity.Status == InventoryIdentityStatus.Valid ? global::TimberbornTrainer.Localization.TextToken.Key("t0115")
+        : report.Identity.Status == InventoryIdentityStatus.Invalid ? global::TimberbornTrainer.Localization.TextToken.Key("t0389") : global::TimberbornTrainer.Localization.TextToken.Key("t0376");
+      _safety.text = global::TimberbornTrainer.Localization.TextToken.Key("t0458") + report.ObservedUtc.ToLocalTime().ToString("HH:mm:ss")
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0009") + identity + global::TimberbornTrainer.Localization.TextToken.Key("t0081") + snapshot.Target.Purpose
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0003") + report.Identity.District + global::TimberbornTrainer.Localization.TextToken.Key("t0092") + report.Identity.Resource
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0012") + Number(report.ReservedStock) + global::TimberbornTrainer.Localization.TextToken.Key("t0064") + Number(report.ReservedCapacity)
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0019") + report.Rows.Count + global::TimberbornTrainer.Localization.TextToken.Key("t0029") + (report.ObservationConsistent ? global::TimberbornTrainer.Localization.TextToken.Key("t0351") : global::TimberbornTrainer.Localization.TextToken.Key("t0187"))
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0072")
         + "\n" + report.Identity.Reason + "\n" + report.Reason;
-      _safety.tooltip = string.Join("\n", report.Rows.Select(r => r.Resource + "：实际 " + r.Amount
-        + "，未预留 " + r.Unreserved + "，物品预留 " + r.Reserved + "，容量预留 " + r.CapacityReservation
-        + "，未预留空位 " + r.FreeCapacity + "，资源限额 " + r.Limit
-        + "，声明允许 " + (r.Declared ? "是" : "否") + "，已注册 " + (r.Registered ? "是" : "否")));
+      _safety.tooltip = string.Join("\n", report.Rows.Select(r => r.Resource + global::TimberbornTrainer.Localization.TextToken.Key("t0094") + r.Amount
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0033") + r.Unreserved + global::TimberbornTrainer.Localization.TextToken.Key("t0035") + r.Reserved + global::TimberbornTrainer.Localization.TextToken.Key("t0031") + r.CapacityReservation
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0034") + r.FreeCapacity + global::TimberbornTrainer.Localization.TextToken.Key("t0038") + r.Limit
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0032") + (r.Declared ? global::TimberbornTrainer.Localization.TextToken.Key("t0351") : global::TimberbornTrainer.Localization.TextToken.Key("t0187")) + global::TimberbornTrainer.Localization.TextToken.Key("t0036") + (r.Registered ? global::TimberbornTrainer.Localization.TextToken.Key("t0351") : global::TimberbornTrainer.Localization.TextToken.Key("t0187"))));
     }
     private void RenderResource() {
-      _editResult.text = "尚无当前选择的新操作结果；请确认目标和资源后执行。";
-      _safety.text = "安全诊断未读取或选择已变化；请主动读取。历史观察不能授权操作。";
+      _editResult.text = global::TimberbornTrainer.Localization.TextToken.Key("t0340");
+      _safety.text = global::TimberbornTrainer.Localization.TextToken.Key("t0110");
       _safety.tooltip = "";
       var snapshot = _browser.Snapshot;
       var row = snapshot?.Resources.FirstOrDefault(r => r.GoodId == _browser.SelectedGoodId);
@@ -267,23 +267,23 @@ namespace TimberbornTrainer.UI {
         _targetEditable = reason == null;
       }
       PaintEditButtons();
-      if (reason != null) _abilities.text = "仅可读取：" + reason;
+      if (reason != null) _abilities.text = global::TimberbornTrainer.Localization.TextToken.Key("t0226") + reason;
       if (snapshot == null || !snapshot.Valid || row == null) {
-        _stock.text = snapshot?.Valid == true ? "已找到库存，但当前没有可显示资源；可能没有声明允许物品且没有存货。\n" + snapshot.Message : "";
+        _stock.text = snapshot?.Valid == true ? global::TimberbornTrainer.Localization.TextToken.Key("t0413") + snapshot.Message : "";
         return;
       }
       bool aggregate = snapshot.Target.Source == InventorySource.Settlement;
-      if (aggregate) _abilities.text = "聚居地显示多个库存的统计，没有可直接写入的统一库存。请选择地区中心或建筑的真实库存。科研点请使用上方“科研点管理”。";
-      string capacity = row.CapacityState == CapacityState.Aggregate ? "统计汇总，不作为统一存储容量"
-        : row.CapacityState == CapacityState.Unlimited ? "原生明确无限"
-        : row.CapacityState == CapacityState.Finite ? "有限，总容量 " + Number(row.TotalCapacity)
-        : "无限状态未确认；原生总上限 " + Number(row.TotalCapacity);
-      _stock.text = (aggregate ? "统计总量：" : "真实数量：") + row.Amount
-        + "\n" + (aggregate ? "原生可用统计：" : "未预留可用：") + Number(row.AvailableStock)
-        + "；已预留物品：" + Number(row.ReservedStock) + "\n预留空位：" + Number(row.ReservedCapacity)
-        + "；可用空位：" + Number(row.FreeCapacity) + "\n容量：" + capacity
-        + "；当前资源限额：" + Number(row.ResourceLimit)
-        + (aggregate ? "" : "\n注册资源：" + (row.Registered ? "是" : "否") + "；库存声明支持：" + (row.Allowed ? "是" : "否"))
+      if (aggregate) _abilities.text = global::TimberbornTrainer.Localization.TextToken.Key("t0238");
+      string capacity = row.CapacityState == CapacityState.Aggregate ? global::TimberbornTrainer.Localization.TextToken.Key("t0363")
+        : row.CapacityState == CapacityState.Unlimited ? global::TimberbornTrainer.Localization.TextToken.Key("t0430")
+        : row.CapacityState == CapacityState.Finite ? global::TimberbornTrainer.Localization.TextToken.Key("t0419") + Number(row.TotalCapacity)
+        : global::TimberbornTrainer.Localization.TextToken.Key("t0388") + Number(row.TotalCapacity);
+      _stock.text = (aggregate ? global::TimberbornTrainer.Localization.TextToken.Key("t0364") : global::TimberbornTrainer.Localization.TextToken.Key("t0452")) + row.Amount
+        + "\n" + (aggregate ? global::TimberbornTrainer.Localization.TextToken.Key("t0428") : global::TimberbornTrainer.Localization.TextToken.Key("t0370")) + Number(row.AvailableStock)
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0079") + Number(row.ReservedStock) + global::TimberbornTrainer.Localization.TextToken.Key("t0015") + Number(row.ReservedCapacity)
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0054") + Number(row.FreeCapacity) + global::TimberbornTrainer.Localization.TextToken.Key("t0008") + capacity
+        + global::TimberbornTrainer.Localization.TextToken.Key("t0043") + Number(row.ResourceLimit)
+        + (aggregate ? "" : global::TimberbornTrainer.Localization.TextToken.Key("t0018") + (row.Registered ? global::TimberbornTrainer.Localization.TextToken.Key("t0351") : global::TimberbornTrainer.Localization.TextToken.Key("t0187")) + global::TimberbornTrainer.Localization.TextToken.Key("t0056") + (row.Allowed ? global::TimberbornTrainer.Localization.TextToken.Key("t0351") : global::TimberbornTrainer.Localization.TextToken.Key("t0187")))
         + "\n" + row.Details;
     }
     internal void SetCommandsEnabled(bool enabled) {

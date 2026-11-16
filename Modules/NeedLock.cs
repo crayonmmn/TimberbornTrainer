@@ -19,7 +19,7 @@ namespace TimberbornTrainer.Modules {
     }
     public bool Maintain(T key, INeedValue value) {
       float current = value.Read();
-      if (float.IsNaN(current) || float.IsInfinity(current)) throw new InvalidOperationException("需求数值异常。");
+      if (float.IsNaN(current) || float.IsInfinity(current)) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0400"));
       float floor;
       if (!_floors.TryGetValue(key, out floor)) {
         // Locking a starving/dehydrated value is not a rescue operation.
@@ -31,7 +31,7 @@ namespace TimberbornTrainer.Modules {
         value.AddEffect(floor - current);
         float after = value.Read();
         if (float.IsNaN(after) || float.IsInfinity(after) || Math.Abs(after - floor) > .0001f)
-          throw new InvalidOperationException("需求效果未达到预期，已暂停锁定。");
+          throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0402"));
       }
       return true;
     }

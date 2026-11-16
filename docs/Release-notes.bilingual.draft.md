@@ -1,3 +1,5 @@
+> Historical v0.4.0 preparation record. Current v0.5.0 runtime-language/unified package design is in docs/release/v0.5.0/development.md; this old separate-DLL workflow is no longer the current build path.
+
 # Timberborn Trainer v0.4.0 — Release notes draft
 
 This is local release preparation. The development branch is being prepared for push; no v0.4.0 tag or Release is authorized.

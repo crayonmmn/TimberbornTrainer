@@ -19,7 +19,7 @@ using Timberborn.Stockpiles;
 
 namespace TimberbornTrainer.Modules {
   public sealed partial class NativeInventoryCatalog : IInventoryCatalog, IPostLoadableSingleton, IUnloadableSingleton {
-    private const string WriteBlocked = "目录能力仅描述读取；库存编辑需独立命令执行时实时校验。";
+    private static readonly string WriteBlocked = global::TimberbornTrainer.Localization.TextToken.Key("t0283");
     private EntityRegistry _entities;
     private DistrictCenterRegistry _districts;
     private IGoodService _goods;
@@ -65,14 +65,14 @@ namespace TimberbornTrainer.Modules {
       _entities = null; _districts = null; _goods = null; _counts = null; _selection = null;
     }
     public InventoryScanReport Scan() {
-      if (!_ready) return new InventoryScanReport { Message = "场景尚未完成初始化或已经卸载，不能扫描。" };
+      if (!_ready) return new InventoryScanReport { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0139") };
       var report = new InventoryScanReport { Sequence = ++_scanCount };
       var watch = Stopwatch.StartNew();
       Clear();
       try {
         _registeredGoods = _goods.Goods.Distinct().OrderBy(id => id, StringComparer.Ordinal).ToArray();
         foreach (string id in _registeredGoods) {
-          if (_goods.GetGood(id) == null) throw new InvalidOperationException("注册资源定义缺失。");
+          if (_goods.GetGood(id) == null) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0463"));
         }
         report.RegisteredResources = _registeredGoods.Length;
         foreach (var center in _districts.FinishedDistrictCenters.ToArray()) {
@@ -87,7 +87,7 @@ namespace TimberbornTrainer.Modules {
           } catch {
             foreach (string id in _targets.Where(p => ReferenceEquals(p.Value.Owner, entity)).Select(p => p.Key).ToArray()) _targets.Remove(id);
             _districtOwners.Remove(entity);
-            Exclude("实体或库存组件检查异常，未纳入目录");
+            Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0349"));
           }
         }
         report.DistrictCenters = _districtOwners.Count;
@@ -95,17 +95,17 @@ namespace TimberbornTrainer.Modules {
         report.InventoryBuildings = _targets.Values.Select(t => t.Description.OwnerId).Distinct().Count();
         var d = new InventoryTarget {
           Id = InventoryIdentity.Target(_scene, "settlement", "statistics"),
-          OwnerId = InventoryIdentity.Owner(_scene, "settlement"), OwnerName = "聚居地",
-          BuildingType = "资源统计", DisplayName = "聚居地资源统计", Source = InventorySource.Settlement,
-          Purpose = "原生统计汇总，包含仓储、生产缓冲与在途物资，不是独立仓库",
-          Abilities = new InventoryAbilities(true, "聚合统计只读，没有对应的单个可写库存。")
+          OwnerId = InventoryIdentity.Owner(_scene, "settlement"), OwnerName = global::TimberbornTrainer.Localization.TextToken.Key("t0236"),
+          BuildingType = global::TimberbornTrainer.Localization.TextToken.Key("t0470"), DisplayName = global::TimberbornTrainer.Localization.TextToken.Key("t0239"), Source = InventorySource.Settlement,
+          Purpose = global::TimberbornTrainer.Localization.TextToken.Key("t0436"),
+          Abilities = new InventoryAbilities(true, global::TimberbornTrainer.Localization.TextToken.Key("t0235"))
         };
         _targets.Add(d.Id, new NativeTarget { Description = d });
-        report.Completed = true; report.Message = "扫描完成；目录仅在当前场景有效，实际库存仍按需读取。";
+        report.Completed = true; report.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0331");
         report.ExcludedObjects = _excludedObjects; report.ExcludedInventories = _excludedInventories;
-        report.ExclusionReasons = _excluded.Select(p => p.Key + "：" + p.Value).OrderBy(s => s).ToArray();
+        report.ExclusionReasons = _excluded.Select(p => p.Key + global::TimberbornTrainer.Localization.TextToken.Key("t0093") + p.Value).OrderBy(s => s).ToArray();
       } catch {
-        Clear(); report.Message = "扫描失败，已清除目录和场景对象缓存，请主动重试。";
+        Clear(); report.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0329");
       } finally { watch.Stop(); report.ElapsedMilliseconds = watch.Elapsed.TotalMilliseconds; }
       LastScan = report;
       return report;
@@ -119,14 +119,14 @@ namespace TimberbornTrainer.Modules {
         throw new ArgumentOutOfRangeException(nameof(source));
       _viewSource = source;
       if (!_ready || LastScan == null || !LastScan.Completed)
-        return new InventoryDiscovery { Message = "尚无当前场景扫描目录，请点击“扫描资源与库存”。" };
+        return new InventoryDiscovery { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0339") };
       var targets = _targets.Values.Where(t => source == InventorySource.Settlement
         ? t.Description.Source == InventorySource.Settlement
         : t.Description.Source != InventorySource.Settlement && (source == InventorySource.Building || _districtOwners.Contains(t.Owner)));
       return new InventoryDiscovery {
         Targets = targets.Select(t => Describe(t.Description, source)).OrderBy(t => t.OwnerName)
           .ThenBy(t => t.DisplayName).ThenBy(t => t.Id, StringComparer.Ordinal).ToArray(),
-        Message = "使用已有扫描目录，未重新枚举场景。新增或删除建筑后可主动重新扫描；选中时重新验证对象。"
+        Message = global::TimberbornTrainer.Localization.TextToken.Key("t0350")
       };
     }
     private static InventoryTarget Describe(InventoryTarget d, InventorySource source) => new InventoryTarget {
@@ -139,34 +139,34 @@ namespace TimberbornTrainer.Modules {
       if (!owner) return;
       var inventories = owner.GetComponent<Inventories>();
       if (!inventories) return;
-      if (!OwnerValid(owner)) { Exclude("缺少有效原生建筑身份或实体未就绪（含自然物体与未知实体）"); return; }
+      if (!OwnerValid(owner)) { Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0328")); return; }
       if (owner.GetComponent<DistrictCrossingInventory>() || owner.GetComponent<DistrictCrossing>()) {
-        Exclude("地区交汇点或运输镜像实体，安全排除"); return;
+        Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0168")); return;
       }
       var labeled = owner.GetComponent<LabeledEntity>();
       var named = owner.GetComponent<NamedEntity>();
       var center = owner.GetComponent<DistrictCenter>();
-      string type = labeled ? labeled.DisplayName : "未命名建筑类型";
+      string type = labeled ? labeled.DisplayName : global::TimberbornTrainer.Localization.TextToken.Key("t0368");
       string name = center ? center.DistrictName : named ? named.EntityName : type;
       if (string.IsNullOrEmpty(name)) name = type;
       var membership = owner.GetComponent<DistrictBuilding>();
       if (!center && membership && membership.District) name = membership.District.DistrictName + " · " + name;
-      name += "（" + owner.GetComponent<BlockObject>().Coordinates + "）";
+      name += global::TimberbornTrainer.Localization.TextToken.Key("t0100") + owner.GetComponent<BlockObject>().Coordinates + global::TimberbornTrainer.Localization.TextToken.Key("t0103");
       var all = inventories.AllInventories.ToArray();
       var names = all.Where(i => i && !string.IsNullOrEmpty(i.ComponentName)).GroupBy(i => i.ComponentName)
         .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
       foreach (var inventory in all) {
-        if (!inventory) { Exclude("库存组件失效", true); continue; }
+        if (!inventory) { Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0258"), true); continue; }
         if (string.IsNullOrEmpty(inventory.ComponentName) || names[inventory.ComponentName] != 1) {
-          Exclude("库存组件名缺失或重复，无法建立稳定身份", true); continue;
+          Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0257"), true); continue;
         }
         string id = InventoryIdentity.Target(_scene, owner.EntityId.ToString(), inventory.ComponentName);
-        if (_targets.ContainsKey(id)) { Exclude("原生库存身份重复", true); continue; }
+        if (_targets.ContainsKey(id)) { Exclude(global::TimberbornTrainer.Localization.TextToken.Key("t0429"), true); continue; }
         string purpose = Purpose(owner, inventory);
         var d = new InventoryTarget {
           Id = id, OwnerId = InventoryIdentity.Owner(_scene, owner.EntityId.ToString()), OwnerName = name,
-          BuildingType = type, DisplayName = purpose + "［" + inventory.ComponentName + "］",
-          Source = InventorySource.Building, Purpose = purpose + (inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察"),
+          BuildingType = type, DisplayName = purpose + global::TimberbornTrainer.Localization.TextToken.Key("t0106") + inventory.ComponentName + global::TimberbornTrainer.Localization.TextToken.Key("t0107"),
+          Source = InventorySource.Building, Purpose = purpose + (inventory.Enabled ? global::TimberbornTrainer.Localization.TextToken.Key("t0057") : global::TimberbornTrainer.Localization.TextToken.Key("t0058")),
           Abilities = new InventoryAbilities(true, WriteBlocked)
         };
         var districtBuilding = owner.GetComponent<DistrictBuilding>();
@@ -179,15 +179,15 @@ namespace TimberbornTrainer.Modules {
     private static string Purpose(EntityComponent owner, Inventory inventory) {
       var construction = owner.GetComponent<ConstructionSite>();
       if (construction && construction.Inventory == inventory) return owner.GetComponent<BlockObject>().IsFinished
-        ? "施工材料库存（建筑已完工）" : "施工材料库存";
+        ? global::TimberbornTrainer.Localization.TextToken.Key("t0346") : global::TimberbornTrainer.Localization.TextToken.Key("t0345");
       var stockpile = owner.GetComponent<Stockpile>();
-      if (stockpile && stockpile.Inventory == inventory) return "仓储库存";
+      if (stockpile && stockpile.Inventory == inventory) return global::TimberbornTrainer.Localization.TextToken.Key("t0126");
       var output = owner.GetComponent<SimpleOutputInventory>();
-      if (output && output.Inventory == inventory) return owner.GetComponent<DistrictCenter>() ? "地区中心自身输出库存" : "建筑输出库存";
-      if (inventory.IsInput && inventory.IsOutput) return "原生输入与输出库存";
-      if (inventory.IsInput) return "原生输入库存";
-      if (inventory.IsOutput) return "原生输出库存";
-      return "用途未确认的原生库存";
+      if (output && output.Inventory == inventory) return owner.GetComponent<DistrictCenter>() ? global::TimberbornTrainer.Localization.TextToken.Key("t0170") : global::TimberbornTrainer.Localization.TextToken.Key("t0214");
+      if (inventory.IsInput && inventory.IsOutput) return global::TimberbornTrainer.Localization.TextToken.Key("t0434");
+      if (inventory.IsInput) return global::TimberbornTrainer.Localization.TextToken.Key("t0433");
+      if (inventory.IsOutput) return global::TimberbornTrainer.Localization.TextToken.Key("t0432");
+      return global::TimberbornTrainer.Localization.TextToken.Key("t0414");
     }
     private bool Valid(NativeTarget target) {
       if (!_ready) return false;
@@ -205,14 +205,14 @@ namespace TimberbornTrainer.Modules {
     public InventorySnapshot Read(string targetId) {
       NativeTarget target;
       if (!_ready || targetId == null || !_targets.TryGetValue(targetId, out target) || !Valid(target)) {
-        if (targetId != null) _targets.Remove(targetId); return new InventorySnapshot { Message = "目标已删除、替换或不再符合建筑身份，已清除该库存选择；请重新扫描。" };
+        if (targetId != null) _targets.Remove(targetId); return new InventorySnapshot { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0280") };
       }
       try {
         var snapshot = target.Description.Source == InventorySource.Settlement ? ReadSettlement(target) : ReadNative(target);
         if (snapshot.Valid) {
           snapshot.Target = Describe(target.Description, _viewSource);
           if (target.Inventory) snapshot.Target.Purpose = Purpose(target.Owner, target.Inventory)
-            + (target.Inventory.Enabled ? "；库存已启用" : "；库存已停用，仅观察");
+            + (target.Inventory.Enabled ? global::TimberbornTrainer.Localization.TextToken.Key("t0057") : global::TimberbornTrainer.Localization.TextToken.Key("t0058"));
         }
         return snapshot;
       } catch { _targets.Remove(targetId); throw; }
@@ -224,14 +224,14 @@ namespace TimberbornTrainer.Modules {
         rows.Add(new InventoryResource {
           GoodId = id, DisplayName = GoodName(id), Registered = true, Allowed = false,
           Amount = count.AllStock, AvailableStock = count.AvailableStock, CapacityState = CapacityState.Aggregate,
-          Details = "仓储 " + count.StockpiledStock + "；输出缓冲 " + count.BufferedOutputStock
-            + "；运往仓储 " + count.CarriedToStockpilesStock + "；加工中 " + count.StockUnderProcessing
-            + "；输入缓冲 " + count.BufferedInput + "；运往生产 " + count.CarriedToProcessors
-            + "。可用数量是原生可用统计，不等于未预留库存；统计可能延迟到下一次模拟更新。"
+          Details = global::TimberbornTrainer.Localization.TextToken.Key("t0125") + count.StockpiledStock + global::TimberbornTrainer.Localization.TextToken.Key("t0069") + count.BufferedOutputStock
+            + global::TimberbornTrainer.Localization.TextToken.Key("t0087") + count.CarriedToStockpilesStock + global::TimberbornTrainer.Localization.TextToken.Key("t0047") + count.StockUnderProcessing
+            + global::TimberbornTrainer.Localization.TextToken.Key("t0070") + count.BufferedInput + global::TimberbornTrainer.Localization.TextToken.Key("t0088") + count.CarriedToProcessors
+            + global::TimberbornTrainer.Localization.TextToken.Key("t0097")
         });
       }
       return new InventorySnapshot { Target = target.Description, Resources = rows.ToArray(), Valid = true,
-        Message = "聚居地统计只读，不是可注入物资的全局仓库。预留量与统一容量不适用于此汇总。" };
+        Message = global::TimberbornTrainer.Localization.TextToken.Key("t0237") };
     }
     private InventorySnapshot ReadNative(NativeTarget target) {
       var inventory = target.Inventory;
@@ -252,23 +252,23 @@ namespace TimberbornTrainer.Modules {
           FreeCapacity = storable ? inventory.UnreservedCapacity(id) : (long?)null,
           ResourceLimit = storable ? inventory.LimitedAmount(id) : (long?)null, TotalCapacity = inventory.Capacity,
           CapacityState = inventory.Capacity == int.MaxValue ? CapacityState.Unknown : CapacityState.Finite,
-          Details = !registeredNow ? "资源标识未在当前原生注册表中确认，只读显示已有库存，不代表名称匹配失败。"
-            : !inDirectory ? "资源已注册，但尚未纳入本次扫描目录；请重新扫描。"
-            : !allowed.Contains(id) ? "资源已注册，但当前库存未声明允许存储；仅显示残留数量，不能增加。"
-            : "资源限额和可用空位按原生接口读取；总容量与资源限额共同约束。整数上限不代表已确认无限容量。"
+          Details = !registeredNow ? global::TimberbornTrainer.Localization.TextToken.Key("t0466")
+            : !inDirectory ? global::TimberbornTrainer.Localization.TextToken.Key("t0475")
+            : !allowed.Contains(id) ? global::TimberbornTrainer.Localization.TextToken.Key("t0474")
+            : global::TimberbornTrainer.Localization.TextToken.Key("t0472")
         });
       }
-      if (!Valid(target)) { _targets.Remove(target.Description.Id); return new InventorySnapshot { Message = "读取期间库存失效，请重新扫描并选择。" }; }
+      if (!Valid(target)) { _targets.Remove(target.Description.Id); return new InventorySnapshot { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0185") }; }
       return new InventorySnapshot { Target = target.Description, Resources = rows.ToArray(), Valid = true,
-        Message = rows.Count == 0 ? "已发现真实库存，但没有声明允许物品且无现存物资；无成本或已停用施工库存可能如此，不是遗漏资源名称。"
-          : "已按需读取真实库存。声明支持的资源仍可能因当前设置、容量或预留而没有可用空位。库存编辑必须暂停并实时校验。" };
+        Message = rows.Count == 0 ? global::TimberbornTrainer.Localization.TextToken.Key("t0407")
+          : global::TimberbornTrainer.Localization.TextToken.Key("t0405") };
     }
     private string GoodName(string id) {
       try {
-        if (!_goods.HasGood(id) || _goods.GetGood(id) == null) return "未注册资源（" + id + "）";
+        if (!_goods.HasGood(id) || _goods.GetGood(id) == null) return global::TimberbornTrainer.Localization.TextToken.Key("t0381") + id + global::TimberbornTrainer.Localization.TextToken.Key("t0103");
         string name = _goods.GetGood(id).DisplayName.Value;
-        return string.IsNullOrWhiteSpace(name) ? "显示名称缺失（" + id + "）" : name;
-      } catch { return "显示名称读取失败（" + id + "）"; }
+        return string.IsNullOrWhiteSpace(name) ? global::TimberbornTrainer.Localization.TextToken.Key("t0394") + id + global::TimberbornTrainer.Localization.TextToken.Key("t0103") : name;
+      } catch { return global::TimberbornTrainer.Localization.TextToken.Key("t0393") + id + global::TimberbornTrainer.Localization.TextToken.Key("t0103"); }
     }
     public bool Focus(string targetId) {
       NativeTarget target;

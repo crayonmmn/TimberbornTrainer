@@ -7,7 +7,7 @@ namespace TimberbornTrainer.Modules {
     public void StartTiming() { if (_ready) _timing.Start(_scene); }
     public string StopTiming() {
       string summary = _timing.Stop();
-      UnityEngine.Debug.Log("海狸修改工具：" + summary);
+      UnityEngine.Debug.Log(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0193") + summary));
       return summary;
     }
     public void Tick() {

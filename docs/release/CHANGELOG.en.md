@@ -1,3 +1,17 @@
+# v0.5.0
+
+[简体中文](CHANGELOG.zh-CN.md)
+
+- One unified package and DLL with runtime English/Simplified Chinese switching.
+- External UTF-8 en-US.json and zh-CN.json with matching stable keys; reuse all 474 prior catalog entries (465 Han messages plus 9 formatting entries), add 3 language-control messages.
+- First-use selection follows the game's current Simplified Chinese; English is the fallback.
+- Manual selection is saved separately and takes precedence on restart.
+- Text refresh preserves existing business conditions, cached results, native names, input and window/tab state.
+- Same Mod ID and three business modules. No new runtime framework, weather feature or gameplay algorithm change.
+- User in-game acceptance reported normal operation on2026-11-16. Both regression contexts passed742 assertions; localization/package24; Release0 errors/0 warnings. See v0.5.0/acceptance.md.
+
+---
+
 # v0.4.0 changelog
 
 [简体中文](CHANGELOG.zh-CN.md)

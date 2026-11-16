@@ -20,15 +20,16 @@ namespace TimberbornTrainer.UI {
         check.style.backgroundColor = value ? Accent : new Color(.07f, .1f, .1f);
       }
     }
-    internal static Label Text(string text) {
-      var label = new Label(text);
+    internal static LocalizedLabel Text(string text) {
+      var label = new LocalizedLabel(text);
       label.style.color = Light;
       label.style.whiteSpace = WhiteSpace.Normal;
       label.style.marginTop = label.style.marginBottom = 3;
       return label;
     }
     internal static TextField Input(string label, string value) {
-      var field = new TextField(label) { value = value };
+      var field = new TextField("") { value = TimberbornTrainer.Localization.RuntimeText.Render(value) };
+      LocalizedUI.Label(field, label);
       field.style.color = Light;
       field.style.minHeight = 30;
       field.style.flexGrow = 1;
@@ -53,9 +54,10 @@ namespace TimberbornTrainer.UI {
   }
 
   internal sealed class ActionButton : Button {
+    public new string tooltip { get => base.tooltip; set => LocalizedUI.Tooltip(this, value); }
     private bool _hover, _pressed, _focused;
     internal ActionButton(string text, Action action) : base(action) {
-      this.text = text;
+      LocalizedUI.Text(this, text);
       style.minHeight = 30;
       style.whiteSpace = WhiteSpace.Normal;
       style.flexShrink = 1;

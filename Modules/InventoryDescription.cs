@@ -17,7 +17,7 @@ namespace TimberbornTrainer.Modules {
     public InventoryAbility Subtract { get; }
     public InventoryAbility Set { get; }
     public InventoryAbilities(bool readable, string reason) {
-      Read = new InventoryAbility(readable, readable ? "按需读取原生数据" : reason);
+      Read = new InventoryAbility(readable, readable ? global::TimberbornTrainer.Localization.TextToken.Key("t0111") : reason);
       Add = new InventoryAbility(false, reason);
       Subtract = new InventoryAbility(false, reason);
       Set = new InventoryAbility(false, reason);
@@ -93,7 +93,7 @@ namespace TimberbornTrainer.Modules {
     public static string Owner(string scene, string entity) => Part(scene) + Part(entity);
     public static string Target(string scene, string entity, string component) => Owner(scene, entity) + Part(component);
     private static string Part(string value) {
-      if (string.IsNullOrEmpty(value)) throw new ArgumentException("库存身份缺失。");
+      if (string.IsNullOrEmpty(value)) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0253"));
       return value.Length + ":" + value;
     }
   }

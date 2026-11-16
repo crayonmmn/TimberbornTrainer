@@ -1,104 +1,59 @@
-# Timberborn Trainer — English user guide
+# Timberborn Trainer v0.5.0 — user guide
 
-[简体中文](使用说明.md) · [Project overview](../README.md)
+[简体中文](使用说明.md) · [Project source](https://github.com/crayonmmn/TimberbornTrainer)
 
-## Choose one language
+v0.5.0 has passed automated validation and user in-game acceptance (reported2026-11-16). This does not guarantee every game/Mod combination. The accepted ZIP is preserved byte-for-byte; its pre-acceptance guide wording is superseded by this online guide and the Release notice. Back up important saves.
 
-The English and Simplified Chinese packages have identical features, safety conditions and Mod ID (`TimberbornTrainer.Core`). **Install only one.** There is no in-game language switch. To change language, exit the game, back up the installed trainer folder and replace it with the other package. Never mix their DLLs or install them side by side.
+## Install
 
-**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
+Baseline: Steam Timberborn 1.1.2.8-ffc2de0-sw, Unity6000.5.11f1, Mono, Windows64. Use the game's official Mod manager. No BepInEx, Harmony, additional Mod, Unity Editor or development SDK is needed.
 
-Get the English or Chinese v0.4.0 ZIP from [GitHub Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.4.0). Historical v0.3.0 remains separate.
+Exit the game. Back up the old Mod folder and saves. Extract `TimberbornTrainer-v0.5.0-win64.zip` into `Timberborn/Mods/` under your actual Documents directory, including OneDrive redirection. The result must contain `TimberbornTrainer/manifest.json`, its DLL and `Languages/en-US.json` plus `Languages/zh-CN.json`. Replace the complete old folder; do not mix the v0.4.0 English/Chinese DLLs. Keep backups outside Mods. Only one installation with Mod ID `TimberbornTrainer.Core` may be enabled. Do not copy files into the game's Managed directory.
 
-## Requirements and installation
+Enable the mod in the official manager and follow the game's restart instructions. Enter a settlement and open Trainer. Global changes are off on load; enable them manually when needed. GitHub Source code archives are not installation packages. Download the unified package from the [v0.5.0 Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.5.0). Historical v0.4.0 remains available.
 
-Verified environment: Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows 64-bit. Uses the game's official mod loader. No BepInEx, Harmony or extra mod is required.
+## Language settings
 
-1. Exit Timberborn and back up important saves.
-2. Extract the chosen ZIP into `Timberborn/Mods/` in your actual Documents folder. Check OneDrive redirection if relevant.
-3. The result must be `Timberborn/Mods/TimberbornTrainer/manifest.json`, with `TimberbornTrainer.dll` beside it. Do not place files in the game's `Managed` directory.
-4. Remove duplicate installations of this Mod ID. Preserve backups outside `Mods`.
-5. Enable the mod in the game's official mod manager and follow any game reload instructions.
-6. Enter a settlement, open **Trainer**, and enable **Enable trainer** manually when you want to make changes. Loading preferences does not automatically enable it.
+1. With no valid saved language preference, the game's current Simplified Chinese selects zh-CN. English, unsupported languages and unreadable language settings select en-US. Traditional Chinese is not treated as Simplified Chinese.
+2. Use **Interface language** to select English or 简体中文. Text changes in place, including previous result/error messages. Native item/building names and IDs are not translated by Trainer.
+3. Manual selection is saved immediately and takes priority on later launches, even if the game's language changes. It is stored separately at `%LOCALAPPDATA%/TimberbornTrainer/language.json`; no gameplay config format or savegame is changed. If saving fails, the session choice still works and a notice is shown. Remove only this preference file while the game is closed to return to automatic selection.
+4. Both JSON files use UTF-8 and identical text keys. A missing Chinese key falls back to English; if English is unavailable, the other available resource or `[Text unavailable: key]` is used. Corrupt, duplicate-key, invalid-UTF8, missing or oversized packs cannot prevent startup. Restore both files from the unified ZIP and restart to reload them. There is no filesystem polling or hot-edit reload.
+5. Switching languages does not re-enable the trainer, change pause/speed, repeat a command, clear input fields or move/rebuild the window. Language feedback is separate from the last business result.
 
 ## Resource Management
 
-### Warehouse items
+Select **Item inventory** and choose a completed supported warehouse directly on the map. The panel reads the configured item, current amount, capacity and unreserved add/remove allowance. An empty warehouse works if its stored item has been assigned in the native UI. No assigned item, ambiguous inventory, invalid/demolished entity or unsupported target gives a reason instead of a write target.
 
-Select a completed standard single-good warehouse on the map. The trainer reads its configured good automatically; it does not guess the intended good from old stock. An empty warehouse is usable if a good is configured in the game's warehouse panel.
+Enable the global switch and manually pause using the game's native control. Enter a positive whole number, then Add or Remove. Requests exceeding unreserved capacity/stock are rejected as a whole and show allowed quantities; reservations are not cleared. After a call, read-back and feedback are shown. An exception may occur after a change; an unconfirmed result is not an invitation to retry automatically.
 
-1. Open **Resource Management → Inventory**.
-2. Select the warehouse in the game.
-3. Confirm its name, good ID, actual amount and native capacity.
-4. Manually pause using the game's pause controls and enable the trainer.
-5. Enter a positive integer and click **Add** or **Remove**.
-6. Check the displayed before/after readback and the game's native inventory panel.
+Third-party goods registered through the native goods service can be listed, but custom inventory behavior is not universally supported. Construction inventories on roads/houses, production buffers and unknown types are not opened for editing merely because an Inventory component exists. Settlement totals are statistics, not a single editable virtual warehouse. Existing district-center output support remains subject to its native identity and ownership checks; the quick map page is for supported warehouses.
 
-Native capacity and reservations are respected. An excessive request is rejected in full; quantities are not silently reduced. The panel reports how much can currently be added or removed. Removing reserved stock is not allowed. Unknown, construction, production-buffer and unsupported custom inventories are not editable warehouse targets. Settlement aggregate totals are not a single warehouse that can be written to.
-
-If no good is configured, set one in the native warehouse UI first. If the target changes, is demolished or becomes invalid, select a valid target again. After a native exception, the inventory may already have changed: check the readback before trying again. There is no automatic retry or rollback.
-
-Names come from the game's own good definitions and localization. The package language does not force the game's item-name language. IDs, including third-party native registered IDs, are preserved. Independently implemented third-party inventory systems are unsupported.
-
-### Science points
-
-Open **Resource Management → Science Points**. Read/refresh the current balance, then use the add, subtract or set controls. Inputs must be integers from 0 to 1,000,000,000; subtraction cannot produce a negative balance. Science points use the native science service, not warehouse items. Each command reads back the result. Restoring preferences does not undo points already changed.
+Use **Science points** for the separate native science service. Refresh the count, Add10, Subtract5 or Set a target, then compare with the native game counter. Inputs must be whole numbers from0 to1,000,000,000; subtraction cannot exceed the balance. It is not a warehouse item. Commands require global enable, validate before calling, and read back the result.
 
 ## Building & Production
 
-**Finish all construction** is a one-shot command for eligible construction sites that exist when clicked. It uses the native completion mechanism. It is not a persistent automatic-construction toggle: later sites follow normal rules until you click again.
+Click **Finish all construction** once to process eligible current sites through native FinishNow. It works as a command, not a persistent toggle; new sites remain normal. Native individual building pause, occupancy and validators are respected. Statistics distinguish confirmed completion, blocked/unfinished, skipped and exceptional/unconfirmed sites. Finishing can delete special entities; no automatic retry or forced state conversion is added.
 
-The command works whether the overall game simulation is paused or running. Individual building pause, occupancy and native blockers remain effective. Sites still unfinished after the call are reported honestly; they are not repeatedly forced. Results distinguish completed, blocked/unfinished, invalid/skipped and exceptions/unconfirmed outcomes.
-
-Carried materials, warehouses and hauling reservations are not modified directly. Existing hauling behavior is left to the game. Some observed in-transit materials were redirected to storage during user testing; this does not guarantee every special case. There is no production multiplier.
+No production multiplier or extra material-return/transport patch is provided. Native logistics decides what happens to carried materials. Global game pause is not a logistics lock, and is not a requirement for this construction command.
 
 ## Beaver Management
 
-Enable **Maintain hunger** and/or **Maintain thirst** independently, with the trainer enabled. Maintenance applies to living, initialized beavers when simulation resumes. It restores the basic need to the normal native maximum and suspends its natural depletion. Turning it off restores the original update state held by this module.
+Enable **Maintain hunger** and/or **Maintain thirst** independently, then enable the global switch. Changes apply as simulation resumes. The native normal maximum is maintained for living initialized beavers, and only the corresponding base need's updating is paused. Other nutrition needs are unchanged. Already-started meals/drinks or transport may finish natively.
 
-Separate food-variety/nutrition needs are not locked. An already started eating, drinking or hauling action is not forcibly cancelled. Actual native errors may stop maintenance for the scene and are reported; compatibility diagnostics alone do not disable it.
+Turning a need or the global switch off restores its previous native update state. New/removed beavers and unloading are handled through the native population/lifecycle. A runtime error stops that scene's maintenance and reports it rather than blindly continuing.
 
-## Floating panel and keyboard
+## Window and configuration
 
-Drag the title bar to move the panel. Release near the left or right edge to dock. After the pointer leaves and interactions finish, it hides after about half a second. Hover or click the remaining tab to open it.
+Drag the title bar, dock left/right, and let the panel hide after leaving it. Hover/click the edge tab to reveal; drag beyond6 UI units to move only the tab without opening. Drag the full panel away from the edge to keep it expanded. No position is persisted across launches. Ordinary panel controls retain existing WASD routing; text inputs accept typing. The user reports normal v0.5.0 operation; additional resolutions, fonts and Mod combinations are not exhaustively verified.
 
-A tab gesture becomes a drag only after moving more than six UI coordinate units. Only the tab moves; releasing after a drag should not open the full panel. After a drag, leave and re-enter the tab to trigger hover wake again. Full-panel title dragging is separate. Drag the panel away from the edges to keep it expanded.
+Save/load/import/export gameplay preferences using the existing controls. Loading/importing does not automatically enable global changes or execute commands. Language preference is separate. Invalid input, unsupported targets, failed reads and compatibility diagnostics are shown; do not assume a warning proves an unverified version works.
 
-No window position is saved across game launches. Ordinary controls do not intentionally intercept WASD camera input. Text boxes retain keyboard input while editing; click a normal control or the title to leave text editing. Check real input behavior in your game; automated UI substitutes are not a guarantee.
+## Compatibility, uninstall and FAQ
 
-## Preferences
+Version/Unity/interface checks warn only; Windows64 and original business conditions remain. Static native interfaces can still fail before or during commands on an unverified game version. Compatibility with all other Mods is not promised.
 
-Save, load, import, export or restore preferences using the panel footer. Preferences are stored separately from game saves under the operating system's local application-data folder, in `TimberbornTrainer`. Hover the folder label to see the actual preferences and `Exchange` paths.
+If the mod is missing, check official enablement, folder nesting and duplicate Mod IDs. If a warehouse is not editable, check completion, configured item, native pause, global enable and the displayed reason. If hunger remains fulfilled but nutrition changes, that is expected: base hunger is not every food need. If language texts are unavailable, restore both JSON files; do not replace game DLLs.
 
-Import/export accepts a standalone `.json` filename, not a path or `config.json`. Importing, loading or entering a new settlement leaves the trainer disabled and never replays construction/science commands. Language is determined at build time, not saved in preferences. Disabling, restoring defaults and uninstalling do not undo previous world changes.
+To uninstall, turn off continuous maintenance/global changes, exit the game and remove only this Mod folder. Previously granted items/science or completed buildings are not undone. Local preferences may be retained or removed separately.
 
-## Compatibility and warnings
-
-The verified environment is listed above. Other game or Unity versions and interface-signature differences produce warnings only; they do not themselves disable features or the global switch. You decide whether to try an unverified environment. Existing operational safety checks still apply, and real calls can fail.
-
-Older versions may truly lack APIs: the inspected 1.0.13.1 inventory has `Give`/`Take`, while this code targets `GiveExisting`/`TakeExisting` from 1.1.2.8. Warnings do not supply missing methods. No old-version adapter is included. Fundamental missing game assemblies/types can prevent the loader from loading a mod before its own diagnostics run.
-
-`MinimumGameVersion` is not a promise that every later version works. No universal third-party Mod compatibility is claimed. Important changes may be saved by the game; back up saves before use.
-
-## Uninstalling
-
-Turn off hunger/thirst maintenance and the trainer, then exit the game normally. Back up the trainer folder and remove it from the actual `Mods` directory. Preferences may be retained separately if desired. Do not delete unrelated mods or saves. Already changed resources, science points and completed buildings remain part of the game state; use an earlier save if you need to undo them.
-
-## Troubleshooting
-
-- **Mod missing:** check the actual Documents folder, ZIP nesting, native mod-manager enablement and duplicate Mod IDs. Do not install both language packages.
-- **Warehouse not recognized:** select a valid completed standard warehouse, not a construction inventory or production buffer.
-- **Empty warehouse cannot be edited:** configure its stored good in the native panel first.
-- **Addition rejected:** confirm global enable and native pause, then check allowed goods, unreserved capacity and reservations.
-- **Where are science controls?** Resource Management → Science Points.
-- **Beavers still eat/drink:** other nutrition needs and already started actions are not forcibly cancelled.
-- **Interface warning:** trying is permitted, but the actual call may fail; inspect the result and do not blindly repeat it.
-- **Need a log?** Unity's log is usually `%USERPROFILE%/AppData/LocalLow/Mechanistry/Timberborn/Player.log`. Share only relevant lines after removing personal paths and save names.
-
-## License, AI development and maintenance
-
-Project code is MIT licensed; see the included `LICENSE`, `THIRD_PARTY_NOTICES.md` and source-audit document. Game assemblies/assets are not distributed.
-
-This project was developed primarily with OpenAI Codex from the author's feature requests, design choices and testing feedback. It is a personal hobby project, with automated and limited in-game testing, and may contain undiscovered bugs, compatibility issues or save-file risks. Back up important saves. It is not officially published or supported by OpenAI.
-
-**Provided AS IS, with no commitment to ongoing maintenance, bug fixes, technical support or future updates.** Future updates depend entirely on the author's personal choice. Open Issues do not create an obligation to respond or resolve them. Existing license terms are unchanged.
+Project-owned code is MIT; retain LICENSE and applicable third-party notices. Game/Unity rights remain separate; no official game DLL/assets are bundled. This hobby project is developed primarily with OpenAI Codex, not officially supported by OpenAI. **Provided AS IS, with no commitment to ongoing maintenance, bug fixes, technical support or updates.** Forks/Issues/PRs are welcome without a response guarantee.
