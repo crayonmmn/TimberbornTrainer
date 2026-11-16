@@ -51,3 +51,31 @@ ZIP bytes: 100598; packaged files: 11.
 - [SHA256SUMS.txt](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.5.0/SHA256SUMS.txt)
 - [English guide](https://github.com/crayonmmn/TimberbornTrainer/blob/v0.5.0/docs/Usage.en.md) · [中文说明](https://github.com/crayonmmn/TimberbornTrainer/blob/v0.5.0/docs/使用说明.md)
 - [Acceptance record](https://github.com/crayonmmn/TimberbornTrainer/blob/v0.5.0/docs/release/v0.5.0/acceptance.md)
+
+## Feature screenshots / 功能实机截图
+
+All four are original user-provided v0.5.0 Simplified Chinese game captures (2026-11-16); English captions describe the same bilingual features. 四张均为用户原始中文实机截图，未裁剪或修改内容；并非英文界面截图。
+
+### One-shot construction / 一次性建造
+
+Finish eligible current construction sites once through the native game mechanism. 通过原版机制一次性完成当前符合条件的工地。
+
+![One-shot construction / 一次性建造](https://raw.githubusercontent.com/crayonmmn/TimberbornTrainer/v0.5.0/docs/screenshots/v0.5.0/construction.png)
+
+### Warehouse inventory / 仓库物品管理
+
+Read the selected warehouse, configured item, current stock and unreserved limits before editing. 读取地图选中仓库的配置物品、实际库存及未预留可操作量。
+
+![Warehouse inventory / 仓库物品管理](https://raw.githubusercontent.com/crayonmmn/TimberbornTrainer/v0.5.0/docs/screenshots/v0.5.0/inventory.png)
+
+### Science points / 科研点管理
+
+Read, set, add or subtract science points with native read-back feedback. 读取、设置、增加或减少科研点，并显示原生回读反馈。
+
+![Science points / 科研点管理](https://raw.githubusercontent.com/crayonmmn/TimberbornTrainer/v0.5.0/docs/screenshots/v0.5.0/science.png)
+
+### Beaver hunger and thirst / 海狸饥饿与口渴
+
+Control basic hunger and thirst independently while leaving other needs to the game. 分别维持基础饥饿与口渴，其他需求仍由游戏管理。
+
+![Beaver hunger and thirst / 海狸饥饿与口渴](https://raw.githubusercontent.com/crayonmmn/TimberbornTrainer/v0.5.0/docs/screenshots/v0.5.0/beaver-needs.png)
