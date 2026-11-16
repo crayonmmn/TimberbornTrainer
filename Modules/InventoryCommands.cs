@@ -17,31 +17,31 @@ namespace TimberbornTrainer.Modules {
     private readonly Func<bool> _enabled;
     public InventoryCommands(Func<bool> enabled) { _enabled = enabled; }
     public ScienceResult Execute(IWarehouseStock stock, ScienceOperation operation, string input) {
-      var result = new ScienceResult { Message = "库存修改失败。" };
-      if (!_enabled()) { result.Message = "全局修改器已关闭。"; return result; }
+      var result = new ScienceResult { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0255") };
+      if (!_enabled()) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0323"); return result; }
       if (operation != ScienceOperation.Add && operation != ScienceOperation.Set && operation != ScienceOperation.Subtract) {
-        result.Message = "不支持的库存操作。"; return result;
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0124"); return result;
       }
       int amount;
       if (input == null || input.Length > 32 || !int.TryParse(input.Trim(), NumberStyles.None,
           CultureInfo.InvariantCulture, out amount) || amount > InputLimit) {
-        result.Message = "请输入零至一百万之间的整数。"; return result;
+        result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0308"); return result;
       }
       bool writeStarted = false;
       try {
-        if (stock == null || !stock.Usable) { result.Message = "请选择仍然有效的已建成仓库及允许存储的资源。"; return result; }
+        if (stock == null || !stock.Usable) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0315"); return result; }
         int before = stock.Read();
         if (before < 0) throw new InvalidOperationException();
         result.Before = before;
         long expected = operation == ScienceOperation.Set ? amount : operation == ScienceOperation.Add
           ? (long)before + amount : (long)before - amount;
         long delta = expected - before;
-        if (expected < 0 || expected > InputLimit) { result.After = before; result.Message = "目标库存超出范围，未修改。"; return result; }
+        if (expected < 0 || expected > InputLimit) { result.After = before; result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0275"); return result; }
         if (delta > 0 && delta > stock.FreeCapacity()) {
-          result.After = before; result.Message = "未预留容量不足；请检查仓库资源设置及在途搬运。"; return result;
+          result.After = before; result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0373"); return result;
         }
         if (delta < 0 && -delta > stock.UnreservedStock()) {
-          result.After = before; result.Message = "未预留库存不足；不移除已被海狸或搬运任务预留的物品。"; return result;
+          result.After = before; result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0371"); return result;
         }
         if (delta != 0) {
           writeStarted = true;
@@ -50,13 +50,13 @@ namespace TimberbornTrainer.Modules {
         }
         result.After = stock.Read();
         result.Success = result.After == expected;
-        result.Message = result.Success ? "成功：已回读单个仓库的真实库存。"
-          : "真实库存与预期不一致，不能确认成功；请勿重复执行。";
+        result.Message = result.Success ? global::TimberbornTrainer.Localization.TextToken.Key("t0146")
+          : global::TimberbornTrainer.Localization.TextToken.Key("t0451");
       } catch {
         if (writeStarted) {
           try { result.After = stock.Read(); } catch { }
-          result.Message = "原生接口可能已生效，但未能确认结果；请核对仓库，不要重复执行。";
-        } else result.Message = "读取或校验库存失败，未执行修改。";
+          result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0427");
+        } else result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0181");
       }
       return result;
     }

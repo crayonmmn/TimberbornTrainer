@@ -34,11 +34,11 @@ namespace TimberbornTrainer.Modules {
       }
       if (!entry.Need.Valid || !entry.Need.Enabled) { _entries.Remove(key); Restore(entry); return false; }
       if (entry.Need.UpdateEnabled) entry.Need.DisableUpdate();
-      if (!Finite(entry.Need.Points)) throw new InvalidOperationException("需求值无效。");
+      if (!Finite(entry.Need.Points)) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0403"));
       if (Math.Abs(entry.Need.Points - entry.Need.Maximum) > .0001f) entry.Need.Reset();
       if (!_entries.TryGetValue(key, out var current) || !ReferenceEquals(current, entry)) return true;
       if (!entry.Need.Valid || !Finite(entry.Need.Points) || Math.Abs(entry.Need.Points - entry.Need.Maximum) > .0001f)
-        throw new InvalidOperationException("原生需求重置未达到正常上限。");
+        throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0439"));
       return true;
     }
     public void Prune(HashSet<T> present) {

@@ -1,5 +1,5 @@
 {
-  "description": "Timberborn in-game trainer: Resource Management, Building & Production, and Beaver Management. English/Chinese packages. AS IS hobby project.",
+  "description": "A Timberborn trainer with runtime English/Chinese, resource management, instant construction, and beaver needs controls.",
   "topics": [
     "timberborn",
     "timberborn-mod",
@@ -13,5 +13,5 @@
     "chinese"
   ],
   "homepage": "https://github.com/crayonmmn/TimberbornTrainer#readme",
-  "note": "Repository metadata only; master remains unchanged. Release and v0.4.0 tag require separate approval."
+  "note": "v0.5.0 publication metadata, authorized2026-11-16. Workshop publication is not authorized."
 }

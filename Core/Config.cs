@@ -17,13 +17,13 @@ namespace TimberbornTrainer.Core {
     public bool LockThirst { get; set; }
 
     public void Validate() {
-      if (SchemaVersion != 1) throw new ArgumentException("不支持此配置版本。");
-      Check(ProductionMultiplier, 1, 100, "生产倍率");
+      if (SchemaVersion != 1) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0122"));
+      Check(ProductionMultiplier, 1, 100, global::TimberbornTrainer.Localization.TextToken.Key("t0343"));
     }
 
     private static void Check(float value, float min, float max, string name) {
       if (float.IsNaN(value) || float.IsInfinity(value) || value < min || value > max)
-        throw new ArgumentException(name + "超出允许范围。");
+        throw new ArgumentException(name + global::TimberbornTrainer.Localization.TextToken.Key("t0143"));
     }
 
     public Config Copy() => (Config)MemberwiseClone();
@@ -44,38 +44,38 @@ namespace TimberbornTrainer.Core {
 
     public static Config Parse(string json) {
       if (json == null || Encoding.UTF8.GetByteCount(json) > MaxBytes)
-        throw new ArgumentException("配置文件过大。");
+        throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0294"));
       JObject document;
       using (var input = new StringReader(json))
       using (var reader = new JsonTextReader(input) { MaxDepth = 8, DateParseHandling = DateParseHandling.None }) {
         document = JObject.Load(reader, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-        if (reader.Read()) throw new ArgumentException("配置包含多余内容。");
+        if (reader.Read()) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0287"));
       }
       if (document["SchemaVersion"]?.Type != JTokenType.Integer)
-        throw new ArgumentException("配置缺少版本号。");
+        throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0293"));
       // Read-only migration of removed Schema-1 keys. They are never stored or re-exported.
       foreach (var name in new[] { "WeatherOverrideEnabled", "WeatherDurationDays", "DroughtOverrideEnabled",
                                    "DroughtDurationDays", "BadtideOverrideEnabled", "BadtideDurationDays" }) {
         var token = document[name];
         if (token == null) continue;
         if (name.EndsWith("Enabled", StringComparison.Ordinal)) {
-          if (token.Type != JTokenType.Boolean) throw new ArgumentException("旧配置开关必须为布尔值。");
+          if (token.Type != JTokenType.Boolean) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0232"));
         } else {
-          if (token.Type != JTokenType.Float && token.Type != JTokenType.Integer) throw new ArgumentException("旧配置参数必须为数值。");
+          if (token.Type != JTokenType.Float && token.Type != JTokenType.Integer) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0230"));
           float value = token.Value<float>();
           if (float.IsNaN(value) || float.IsInfinity(value) || value < .1f || value > 1000)
-            throw new ArgumentException("旧配置参数超出允许范围。");
+            throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0231"));
         }
         document.Remove(name);
       }
       foreach (var property in document.Properties()) {
         var info = typeof(Config).GetProperty(property.Name);
-        if (info == null) throw new ArgumentException("配置包含未知字段。");
+        if (info == null) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0288"));
         var type = property.Value.Type;
         if (info.PropertyType == typeof(bool) && type != JTokenType.Boolean)
-          throw new ArgumentException("配置开关必须为布尔值。");
+          throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0291"));
         if (info.PropertyType == typeof(float) && type != JTokenType.Float && type != JTokenType.Integer)
-          throw new ArgumentException("配置参数必须为数值。");
+          throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0289"));
       }
       var config = document.ToObject<Config>(JsonSerializer.Create(new JsonSerializerSettings {
         TypeNameHandling = TypeNameHandling.None, MissingMemberHandling = MissingMemberHandling.Error
@@ -89,13 +89,13 @@ namespace TimberbornTrainer.Core {
           name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.Contains("/") || name.Contains("\\") ||
           name == "." || name == ".." || !name.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
           string.Equals(name, "config.json", StringComparison.OrdinalIgnoreCase))
-        throw new ArgumentException("请输入独立的 JSON 文件名，不要包含路径或使用 config.json。");
+        throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0305"));
       return Path.Combine(_directory, "Exchange", name);
     }
 
     private static Config Read(string path) {
       using (var stream = File.OpenRead(path)) {
-        if (stream.Length > MaxBytes) throw new ArgumentException("配置文件过大。");
+        if (stream.Length > MaxBytes) throw new ArgumentException(global::TimberbornTrainer.Localization.TextToken.Key("t0294"));
         using (var reader = new StreamReader(stream, Encoding.UTF8, true)) return Parse(reader.ReadToEnd());
       }
     }

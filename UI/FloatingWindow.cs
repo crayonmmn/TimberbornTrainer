@@ -7,7 +7,7 @@ namespace TimberbornTrainer.UI {
   // Local mouse events only. Never registers a game input processor or blocks keyboard input.
   internal sealed class FloatingWindow : IDisposable {
     private readonly VisualElement _root, _panel, _title, _titleText;
-    private readonly Label _tab;
+    private readonly LocalizedLabel _tab;
     private readonly EdgeTabGesture _tabGesture = new EdgeTabGesture();
     private float _tabWakeAt = -1;
     private bool _tabHovered, _suppressTabHover, _rootHovered;
@@ -20,7 +20,7 @@ namespace TimberbornTrainer.UI {
     internal FloatingWindow(VisualElement root, VisualElement panel, VisualElement title, VisualElement titleText) {
       _root = root; _panel = panel; _title = title; _titleText = titleText;
       _root.pickingMode = PickingMode.Ignore; _root.focusable = false;
-      _tab = new Label("修改\n工具") { name = "TrainerEdgeTab", tooltip = "单击或悬停展开；拖动仅移动标签" };
+      _tab = new LocalizedLabel(global::TimberbornTrainer.Localization.TextToken.Key("t0395")) { name = "TrainerEdgeTab", tooltip = global::TimberbornTrainer.Localization.TextToken.Key("t0152") };
       _tab.style.position = Position.Absolute; _tab.style.width = FloatingWindowState.TabWidth;
       _tab.style.height = 70; _tab.style.top = 35; _tab.style.fontSize = 14;
       _tab.style.color = ControlStyles.Light; _tab.style.backgroundColor = new Color(.10f, .25f, .21f);
@@ -237,7 +237,7 @@ namespace TimberbornTrainer.UI {
       _root.UnregisterCallback<MouseCaptureOutEvent>(CaptureLost); _root.UnregisterCallback<WheelEvent>(Wheel, TrickleDown.TrickleDown);
       _root.UnregisterCallback<FocusInEvent>(FocusIn); _root.UnregisterCallback<FocusOutEvent>(FocusOut);
       _root.UnregisterCallback<GeometryChangedEvent>(Geometry); _root.UnregisterCallback<AttachToPanelEvent>(Attach);
-      _root.UnregisterCallback<DetachFromPanelEvent>(Detach); _tab.RemoveFromHierarchy(); _viewport = null;
+      _root.UnregisterCallback<DetachFromPanelEvent>(Detach); LocalizedUI.Release(_tab); _tab.RemoveFromHierarchy(); _viewport = null;
       foreach (var dropdown in _dropdowns) dropdown.UnregisterCallback<ChangeEvent<string>>(DropdownChanged);
       _dropdowns.Clear();
     }

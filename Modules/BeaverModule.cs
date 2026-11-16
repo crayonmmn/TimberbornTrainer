@@ -29,7 +29,7 @@ namespace TimberbornTrainer.Modules {
       _state = _session.State;
       if (_state == null) {
         RuntimeError = true;
-        Debug.LogError("海狸修改工具：配置状态尚未就绪，本场景需求维持已停用。");
+        Debug.LogError(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0197")));
         return;
       }
       _state.Changed += SettingsChanged;
@@ -75,7 +75,7 @@ namespace TimberbornTrainer.Modules {
         _hunger.Prune(present); _thirst.Prune(present);
       } catch (Exception e) {
         RuntimeError = true; _hunger.Clear(); _thirst.Clear(); UnsafeNeeds = 0;
-        Debug.LogError("海狸修改工具：需求维持出现异常（" + e.GetType().Name + "），已暂停本场景锁定，不会自动重试。");
+        Debug.LogError(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0199") + e.GetType().Name + global::TimberbornTrainer.Localization.TextToken.Key("t0104")));
       }
     }
     private static bool TryGetReady(Character character, out Beaver beaver, out NeedManager needs) {
@@ -102,7 +102,7 @@ namespace TimberbornTrainer.Modules {
       private readonly string _id;
       private readonly Need _need;
       public NativeNeed(NeedManager needs, string id) {
-        if (GetNeed == null || Updating == null || Updating.FieldType != typeof(bool)) throw new InvalidOperationException("需求访问器不匹配。");
+        if (GetNeed == null || Updating == null || Updating.FieldType != typeof(bool)) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0399"));
         _needs = needs; _id = id; _need = (Need)GetNeed.Invoke(needs, new object[] { id });
       }
       public object Owner => _needs;

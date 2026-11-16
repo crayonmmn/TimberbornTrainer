@@ -1,8 +1,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory = $true)][string]$GamePath,
-  [string]$CompilerDirectory = $PSHOME,
-  [ValidateSet('en','zh-CN')][string]$Language = 'en'
+  [string]$CompilerDirectory = $PSHOME
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -20,16 +19,16 @@ foreach ($required in @('Timberborn.ModManagerScene.dll','Bindito.Core.dll','Uni
 }
 . (Join-Path $PSScriptRoot 'Compiler.ps1')
 Import-ExistingCompiler $CompilerDirectory
-Initialize-TextLocalization $Language $projectRoot
+
 $sources = @('Core','Modules','UI','Patches') | ForEach-Object {
   Get-ChildItem -LiteralPath (Join-Path $projectRoot $_) -Filter '*.cs' -Recurse
 }
 $references = @(Get-ChildItem -LiteralPath $managed -Filter '*.dll' | ForEach-Object FullName)
-$outputDirectory = Join-Path $projectRoot ('bin/Release/' + $Language + '/netstandard2.1')
+$outputDirectory = Join-Path $projectRoot 'bin/Release/netstandard2.1'
 [IO.Directory]::CreateDirectory($outputDirectory) | Out-Null
 $output = Join-Path $outputDirectory 'TimberbornTrainer.dll'
 Invoke-SourceCompilation -Sources @($sources.FullName) -References $references -Output $output -Name 'TimberbornTrainer'
-$package = Join-Path $projectRoot ('dist/' + $Language + '/TimberbornTrainer')
+$package = Join-Path $projectRoot 'dist/unified/TimberbornTrainer'
 [IO.Directory]::CreateDirectory($package) | Out-Null
 Copy-Item -LiteralPath $output -Destination (Join-Path $package 'TimberbornTrainer.dll')
 foreach ($name in @('manifest.json','README.md','README.zh-CN.md','LICENSE','THIRD_PARTY_NOTICES.md')) {
@@ -40,13 +39,13 @@ $packageDocs = Join-Path $package 'docs'
 foreach ($name in @('Usage.en.md','使用说明.md','第三方代码来源记录.md')) {
   Copy-Item -LiteralPath (Join-Path $projectRoot ('docs/' + $name)) -Destination (Join-Path $packageDocs $name)
 }
-if ($Language -eq 'en') {
-  $manifest = Get-Content -LiteralPath (Join-Path $package 'manifest.json') -Raw | ConvertFrom-Json
-  $manifest.Name = 'Timberborn Trainer'
-  $manifest.Description = 'Resource Management, Building & Production, and Beaver Management. Choose one language package; do not install both.'
-  $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $package 'manifest.json') -Encoding utf8
+$languageOutput = Join-Path $package 'Languages'
+[IO.Directory]::CreateDirectory($languageOutput) | Out-Null
+foreach ($file in @('en-US.json','zh-CN.json')) {
+  Copy-Item -LiteralPath (Join-Path $projectRoot ('Languages/' + $file)) -Destination (Join-Path $languageOutput $file) -Force
 }
-@("Language: $Language",'Install only one language package. Both packages use Mod ID TimberbornTrainer.Core.') | Set-Content -LiteralPath (Join-Path $package 'PACKAGE-LANGUAGE.txt') -Encoding utf8
-Write-Output ('Language: ' + $Language + '; translated literal occurrences: ' + $script:LocalizedLiteralCount)
-Write-Output '构建成功。仅在项目 dist 目录生成待测试包，没有安装到游戏。'
-
+$manifest = Get-Content -LiteralPath (Join-Path $package 'manifest.json') -Raw | ConvertFrom-Json
+$manifest.Name = 'Timberborn Trainer'
+$manifest.Description = 'Resource Management, Building & Production, and Beaver Management. Runtime English / Simplified Chinese.'
+$manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $package 'manifest.json') -Encoding utf8NoBOM
+Write-Output 'Unified Release built. Language resources are external; no installation performed.'

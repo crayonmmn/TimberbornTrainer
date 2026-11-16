@@ -19,7 +19,7 @@ namespace TimberbornTrainer.Modules {
     internal InventoryIdentityReport(InventoryIdentityStatus status, string code, string reason,
         string scene, string district, string resource) {
       Status = status; Code = code; Reason = reason; Scene = scene ?? "";
-      District = district ?? "未知"; Resource = resource ?? "";
+      District = district ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376"); Resource = resource ?? "";
       Observation = Guid.NewGuid().ToString("N");
     }
   }

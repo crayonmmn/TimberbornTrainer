@@ -7,12 +7,15 @@ using Timberborn.Versioning;
 using TimberbornTrainer.UI;
 using TimberbornTrainer.Modules;
 using UnityEngine;
+using Timberborn.Localization;
+using TimberbornTrainer.Localization;
 
 namespace TimberbornTrainer.Core {
   public sealed class TrainerMod : IModStarter {
     public void StartMod(IModEnvironment modEnvironment) {
-      // Startup only: no game services, patches, or gameplay modifications here.
-      Debug.Log("海狸修改工具：基础框架已启动，等待游戏场景初始化。");
+      // Language files are local data, not executable dependencies.
+      RuntimeText.Configure(Path.Combine(modEnvironment.ModPath, "Languages"), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TimberbornTrainer", "language.json"));
+      Debug.Log(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0195")));
     }
   }
 
@@ -34,16 +37,19 @@ namespace TimberbornTrainer.Core {
     public ConfigStore Store { get; private set; }
     public string StartupMessage { get; private set; } = "";
     private bool _compatibilityWarningLogged;
+    private readonly ILocalizationService _localization;
+    public TrainerSession(ILocalizationService localization) { _localization = localization; }
 
     public void Load() {
+      try { RuntimeText.SelectInitial(_localization.CurrentLanguage); } catch { RuntimeText.SelectInitial(null); }
       string version;
       try { version = GameVersions.CurrentVersion.Full; }
-      catch { version = "未知"; }
+      catch { version = global::TimberbornTrainer.Localization.TextToken.Key("t0376"); }
       State = new TrainerState(version, Application.platform == RuntimePlatform.WindowsPlayer && Environment.Is64BitProcess,
                                Application.unityVersion, RuntimeApiChecks.Capture());
       if (!State.VerifiedVersion && !_compatibilityWarningLogged) {
         _compatibilityWarningLogged = true;
-        Debug.LogWarning(State.CompatibilityMessage);
+        Debug.LogWarning(global::TimberbornTrainer.Localization.RuntimeText.Render(State.CompatibilityMessage));
       }
       Store = new ConfigStore(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                                           "TimberbornTrainer"));
@@ -53,8 +59,8 @@ namespace TimberbornTrainer.Core {
         settings.Enabled = false;
         State.Apply(settings);
       } catch (Exception) {
-        StartupMessage = "读取配置失败，已使用默认设置；原文件未被覆盖。";
-        Debug.LogWarning("海狸修改工具：读取配置失败，原文件保持不变。");
+        StartupMessage = global::TimberbornTrainer.Localization.TextToken.Key("t0184");
+        Debug.LogWarning(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0194")));
       }
     }
   }

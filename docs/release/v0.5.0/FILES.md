@@ -1,0 +1,63 @@
+# v0.5.0 local change list
+
+Pre-existing docs/audit/v0.4.0-版权与运行依赖审计.md is retained and excluded from this task's change list.
+
+- `.github/repository-settings.json`
+- `build/Build.ps1`
+- `build/Compiler.ps1`
+- `build/Test-Localization.ps1`
+- `build/Test.ps1`
+- `Core/AssemblyInfo.cs`
+- `Core/Config.cs`
+- `Core/RuntimeApiChecks.cs`
+- `Core/RuntimeText.cs`
+- `Core/TextToken.cs`
+- `Core/TrainerMod.cs`
+- `Core/TrainerState.cs`
+- `docs/第三方代码来源记录.md`
+- `docs/使用说明.md`
+- `docs/双语安装包准备.md`
+- `docs/Release-notes.bilingual.draft.md`
+- `docs/release/CHANGELOG.en.md`
+- `docs/release/CHANGELOG.zh-CN.md`
+- `docs/release/v0.5.0/development.md`
+- `docs/release/v0.5.0/GITHUB-PLAN.md`
+- `docs/release/v0.5.0/RELEASE.md`
+- `docs/release/v0.5.0/SHA256SUMS.txt`
+- `docs/release/v0.5.0/WORKSHOP.md`
+- `docs/Usage.en.md`
+- `Languages/en-US.json`
+- `Languages/zh-CN.json`
+- `manifest.json`
+- `Modules/BeaverModule.cs`
+- `Modules/BuildingModule.cs`
+- `Modules/ConstructionCommands.cs`
+- `Modules/InventoryBrowser.cs`
+- `Modules/InventoryCommands.cs`
+- `Modules/InventoryDescription.cs`
+- `Modules/InventoryEditCommands.cs`
+- `Modules/InventorySafetyReport.cs`
+- `Modules/InventoryTimingTrace.cs`
+- `Modules/InventoryWritePlan.cs`
+- `Modules/NativeInventoryCatalog.cs`
+- `Modules/NativeInventoryEditing.cs`
+- `Modules/NativeInventoryMapSelection.cs`
+- `Modules/NativeInventorySafety.cs`
+- `Modules/NativeInventoryTiming.cs`
+- `Modules/NeedLock.cs`
+- `Modules/NeedMaintenance.cs`
+- `Modules/ScienceCommands.cs`
+- `README.md`
+- `README.zh-CN.md`
+- `Tests/LocalizedAssertions.cs`
+- `Tests/RuntimeLocalizationTests.cs`
+- `Tests/RuntimeUiLocalizationTests.cs`
+- `UI/ControlStyles.cs`
+- `UI/FloatingWindow.cs`
+- `UI/InventoryPanel.cs`
+- `UI/Localization/Chinese.cs`
+- `UI/Localization/strings.en.json`
+- `UI/LocalizedControls.cs`
+- `UI/MainPanel.cs`
+- `UI/MapInventoryPanel.cs`
+- `docs/release/v0.5.0/FILES.md` (this generated list)

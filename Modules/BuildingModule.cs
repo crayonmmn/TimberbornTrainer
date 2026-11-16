@@ -27,8 +27,8 @@ namespace TimberbornTrainer.Modules {
         // Finishing can mutate the registry: snapshot before inspecting or finishing any entity.
         var entities = _entities.Entities.ToArray();
         return entities.Select(entity => (IConstructionTarget)new NativeSite(_entities, _events, entity)).ToArray();
-      }, e => Debug.LogError("海狸修改工具：批量完工异常（" + e.GetType().Name +
-        "）；工地可能已变化，不自动重试或回滚。"));
+      }, e => Debug.LogError(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0198") + e.GetType().Name +
+        global::TimberbornTrainer.Localization.TextToken.Key("t0105"))));
       if (!Busy) LastResult = result;
       return result;
     }

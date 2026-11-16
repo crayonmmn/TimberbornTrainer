@@ -26,8 +26,8 @@ namespace TimberbornTrainer.Modules {
 
     public ConstructionResult Execute(Func<IConstructionTarget[]> snapshot, Action<Exception> logError = null) {
       var result = new ConstructionResult();
-      if (Busy) { result.Message = "已有批量完工正在执行，本次未执行。"; return result; }
-      if (!_enabled()) { result.Message = "全局修改器已关闭或场景已卸载，未执行。"; return result; }
+      if (Busy) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0412"); return result; }
+      if (!_enabled()) { result.Message = global::TimberbornTrainer.Localization.TextToken.Key("t0324"); return result; }
       Busy = true;
       bool interrupted = false;
       try {
@@ -51,12 +51,12 @@ namespace TimberbornTrainer.Modules {
       } catch (Exception e) { ++result.Errors; Report(logError, e); }
       finally { Busy = false; }
       int total = result.Completed + result.Unfinished + result.Skipped + result.Errors + result.Unconfirmed;
-      result.Message = (interrupted ? "场景或全局状态变化，本次已停止。" : total == 0 ?
-        "没有符合条件的未完工工地。" : "本次批量完工已结束。") +
-        " 确认完成 " + result.Completed + "；未完成或受阻 " + result.Unfinished +
-        "；失效或跳过 " + result.Skipped + "；异常 " + result.Errors + "；结果未确认 " + result.Unconfirmed + "。";
+      result.Message = (interrupted ? global::TimberbornTrainer.Localization.TextToken.Key("t0137") : total == 0 ?
+        global::TimberbornTrainer.Localization.TextToken.Key("t0265") : global::TimberbornTrainer.Localization.TextToken.Key("t0116")) +
+        global::TimberbornTrainer.Localization.TextToken.Key("t0027") + result.Completed + global::TimberbornTrainer.Localization.TextToken.Key("t0073") + result.Unfinished +
+        global::TimberbornTrainer.Localization.TextToken.Key("t0065") + result.Skipped + global::TimberbornTrainer.Localization.TextToken.Key("t0080") + result.Errors + global::TimberbornTrainer.Localization.TextToken.Key("t0049") + result.Unconfirmed + global::TimberbornTrainer.Localization.TextToken.Key("t0096");
       if (result.Errors + result.Unconfirmed > 0)
-        result.Message += " 部分工地可能已经变化，请检查现场；不会自动重试或回滚。";
+        result.Message += global::TimberbornTrainer.Localization.TextToken.Key("t0021");
       return result;
     }
 

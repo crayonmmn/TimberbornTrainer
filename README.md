@@ -2,101 +2,69 @@
 
 [简体中文](README.zh-CN.md) · [English guide](docs/Usage.en.md) · [中文使用说明](docs/使用说明.md)
 
-**Version: v0.4.0**
+**Version: v0.5.0**
 
-**Testing notice:** The English version has passed automated build, regression, and localization tests, but has not been manually tested in-game. Some UI or compatibility issues may remain. Please report any problems through GitHub Issues.
+A lightweight floating trainer for **Resource Management**, **Building & Production**, and **Beaver Management**. One shared DLL now supports runtime English and Simplified Chinese through external JSON language files.
 
-**测试说明：** 英文版已通过自动化构建、回归及本地化测试，但尚未经过人工游戏内实机验收，仍可能存在界面或兼容性问题。如发现问题，欢迎通过 GitHub Issues 反馈。
-
-A lightweight in-game control panel for **Resource Management**, **Building & Production**, and **Beaver Management**, using Timberborn's official mod loader.
-
-**Verified environment:** Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows 64-bit.
-
-The Chinese core functionality has prior user in-game validation. The English package is released with automated validation only; see the testing notice above. Historical v0.3.0 remains available separately.
-
-## Downloads and installation
-
-[Public releases](https://github.com/crayonmmn/TimberbornTrainer/releases) · [Latest published release](https://github.com/crayonmmn/TimberbornTrainer/releases/latest)
-
-| Language | Installation package | Verification |
-| --- | --- | --- |
-| English | [TimberbornTrainer-v0.4.0-en-win64.zip](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-en-win64.zip) | Automated tests; no manual in-game acceptance |
-| 简体中文 | [TimberbornTrainer-v0.4.0-zh-CN-win64.zip](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.4.0/TimberbornTrainer-v0.4.0-zh-CN-win64.zip) | Prior user in-game validation |
-
-**Install ONE language package only. Both use Mod ID `TimberbornTrainer.Core`; they must not be installed together.** They share the same code and behavior. There is no in-game language selector. To change language, exit the game and replace the installed package.
-
-1. Exit the game and back up important saves.
-2. Extract the ZIP's `TimberbornTrainer` folder into `Timberborn/Mods/` under your **actual Documents folder**. Documents may be redirected to OneDrive.
-3. Confirm `Timberborn/Mods/TimberbornTrainer/manifest.json` and `TimberbornTrainer.dll` are at the same level. Avoid an extra nested folder and duplicate Mod IDs.
-4. Enable the mod in the game's official mod manager, then enter a settlement and open **Trainer** (Chinese package: **修改工具**).
-5. Enable the trainer manually when needed. Loading preferences or entering a scene never automatically enables it.
-
-No BepInEx, Harmony, external trainer or additional mod is required. Do not download GitHub's source archive as an installation package.
+Download the [unified v0.5.0 package](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.5.0/TimberbornTrainer-v0.5.0-win64.zip) from [GitHub Releases](https://github.com/crayonmmn/TimberbornTrainer/releases/latest). [SHA256 checksums](https://github.com/crayonmmn/TimberbornTrainer/releases/download/v0.5.0/SHA256SUMS.txt). Historical v0.4.0 separate-language packages remain available.
 
 ## Features
 
-| Module | Available features |
-| --- | --- |
-| **Resource Management** | Select a completed, configured single-good warehouse on the map. Read stock, add/remove items, including an empty warehouse with a configured good. Respects native capacity and reservations; manual pause and global enable are required. Science points have their own page: read, add, subtract and set. |
-| **Building & Production** | **Finish all construction** calls the native completion mechanism once for current eligible sites. Works while the game is running or paused. Building-specific pause and native blockers are respected. New sites do not finish automatically. No production multiplier is included. |
-| **Beaver Management** | Maintain basic hunger and thirst independently. Turning off restores the original need-update state. Separate nutrition needs are not locked; existing eating/drinking actions are not forcibly cancelled. |
+- **Resource Management:** select a completed supported warehouse on the map, read its configured item and add/remove stock, including an empty warehouse with an assigned item. Native capacity, reservations, identity checks, global enable and manual pause remain required. Unsupported targets remain read-only. Science has a separate page with read, add, subtract and set operations.
+- **Building & Production:** **Finish all construction** processes eligible current sites once using the native API. It does not auto-complete future sites, override building pause/blockers or add production multipliers. Native logistics handles materials.
+- **Beaver Management:** independently maintain basic hunger and thirst. Other nutrition needs are not locked; started eating/drinking actions are not forcibly cancelled. Turning maintenance off restores native updating.
+- Movable floating window, left/right docking, delayed edge hiding, independent edge-tab gestures and existing keyboard behavior remain in place.
 
-Drag the title bar to move the panel. Dock left or right for delayed auto-hide; hover or click the edge tab to open it. Tab dragging uses a threshold of more than six UI units and moves only the tab. Dragging the full panel back to the center keeps it expanded. Window position is not persisted across game launches. Text inputs retain normal editing; ordinary panel interactions do not deliberately block WASD.
+## Installation and language
 
-Item names come from the game's own localization, even when the package language differs from the game language. Native good IDs are unchanged.
+Verified baseline: Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows64. Uses the official mod loader; **no BepInEx, Harmony, extra Mod, Unity Editor or development SDK is required**. Other game/Unity versions and interface checks warn rather than disabling features; actual calls can fail. Windows64 and original business safety conditions remain. Compatibility with every third-party Mod is not guaranteed.
 
-## Compatibility and limitations
+For v0.5.0, use `TimberbornTrainer-v0.5.0-win64.zip`. Exit the game, back up saves and the old Mod folder, and replace the complete folder in your actual Documents directory (which may be redirected to OneDrive):
 
-- The environment above is the verified baseline, not a promise of compatibility with future or older versions.
-- Other game or Unity versions display a warning and may still be tried. Interface diagnostics also **warn only**, without disabling features. Actual calls can fail; existing safety checks and exception handling remain in effect. No automatic retry or rollback is performed.
-- `MinimumGameVersion: 1.1.2.8` is not a promise that every later version works. Windows 64-bit remains the supported platform.
-- Native registered goods and standard storage components provide a compatibility path for third-party mods, but specific mods have not all been tested. Independent custom inventory systems are unsupported.
-- Construction inventories, production buffers, district crossings and unknown inventory roles are not editable targets. Settlement totals are aggregates, not a single editable warehouse.
-- World changes can be saved by the game. Disabling the trainer or uninstalling does not undo resources, science points or completed buildings. Back up important saves.
-
-The Chinese core functionality has user in-game validation. The English package has not been independently tested in-game; automated checks do not prove real UI behavior.
-
-## Screenshots
-
-Only real game screenshots will be used. No suitable screenshots are currently included. The [capture checklist](docs/screenshots/README.md) lists optional real screenshots that can be supplied later; no generated or fabricated screenshots are used.
-
-## Building
-
-Run each language separately in a fresh PowerShell process:
-
-```powershell
-./build/Test.ps1 -GamePath '<Timberborn installation>' -Language en
-./build/Build.ps1 -GamePath '<Timberborn installation>' -Language en
-./build/Test.ps1 -GamePath '<Timberborn installation>' -Language zh-CN
-./build/Build.ps1 -GamePath '<Timberborn installation>' -Language zh-CN
+```text
+Timberborn/Mods/TimberbornTrainer/
+  TimberbornTrainer.dll
+  manifest.json
+  Languages/en-US.json
+  Languages/zh-CN.json
+  ...README, guides and license notices
 ```
 
-The script defaults to English. Language-specific outputs are under `dist/en/TimberbornTrainer` and `dist/zh-CN/TimberbornTrainer`. Both compile the same source; only explicitly catalogued string literal tokens are localized during compilation. No runtime language switching or language preference is added. Use these scripts for bilingual release preparation; the raw SDK project alone does not apply the text catalog.
+Keep the **Languages** folder beside the DLL. Do not mix v0.4.0 language DLLs or install another copy of Mod ID `TimberbornTrainer.Core`. Do not copy files into the game's Managed folder. Enable the Mod in the official manager.
 
-Run `./build/Test-Localization.ps1 -GamePath '<Timberborn installation>'` after building both languages to check text coverage, package metadata and non-text IL equivalence.
+On first use, the game's current Simplified Chinese selects `zh-CN`; English or an unsupported/unreadable language selects `en-US`. Use **Interface language** in the panel to select **English** or **简体中文**. A manual choice is saved immediately to `language.json` under LocalApplicationData/TimberbornTrainer and takes priority on later starts. A save failure is reported and the session choice remains usable. It is separate from gameplay configuration and does not change the savegame.
 
-The build uses existing Roslyn assemblies and the verified local game's references, without shipping game DLLs. Technical records remain under `docs/`.
+Text updates in place, including cached results and errors; gameplay state, input values, window/tab position and native item names are preserved. Missing Chinese keys fall back to English, then to another available pack or safe fallback text. Missing/corrupt language files cannot block startup; restore the original two JSON files from the unified package. [Full guide](docs/Usage.en.md).
 
-[v0.4.0 English changelog](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.en.md) · [中文更新日志](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/CHANGELOG.zh-CN.md) · [SHA256](https://github.com/crayonmmn/TimberbornTrainer/blob/master/docs/release/SHA256SUMS.txt)
+## Validation and limitations
+
+**The user completed v0.5.0 in-game acceptance and confirmed normal operation on 2026-11-16.** This release also passed742 regression assertions per language context and24 localization/package checks, with0 build errors/warnings. User acceptance does not certify every resolution, save, game version or Mod combination. See [acceptance record](docs/release/v0.5.0/acceptance.md). The fixed, accepted ZIP retains preparation-stage guide wording; this repository and Release notice record the final acceptance status. No weather, natural-water or production-multiplier feature is provided.
+
+## Build and tests
+
+Use PowerShell7 with installed Roslyn and a legally installed matching game. No game DLL is distributed in this repository or package.
+
+```powershell
+./build/Build.ps1 -GamePath '<game root>'
+./build/Test.ps1 -GamePath '<game root>' -Language en
+./build/Test.ps1 -GamePath '<game root>' -Language zh-CN
+./build/Test-Localization.ps1 -GamePath '<game root>'
+```
+
+Build.ps1 produces one DLL under `dist/unified/TimberbornTrainer` and copies external language resources. Build/Test support `-CompilerDirectory`; localization checks use Roslyn from `$PSHOME`. Tests regenerate their own output. The test language flag selects expectations; it does not produce different shipping DLLs.
 
 ## License, AI development and maintenance
 
-Project code is [MIT licensed](LICENSE). See [third-party notices](THIRD_PARTY_NOTICES.md) and the [source audit](docs/第三方代码来源记录.md). Game assemblies and assets are not included.
+Project-owned code is [MIT](LICENSE); retain copyright/license and applicable [third-party notices](THIRD_PARTY_NOTICES.md). Game/Unity/third-party rights are not relicensed by this project. [Source records](docs/第三方代码来源记录.md). The package contains no game DLLs or assets.
 
-This project was developed primarily with OpenAI Codex from the author's feature requests, design choices and testing feedback.
+This project was developed primarily with OpenAI Codex from the author's requirements, designs and testing feedback. It is a personal hobby project, not an official OpenAI release or supported by OpenAI. Automated and limited in-game testing cannot rule out undiscovered bugs, compatibility issues or save risks. **Back up important saves.**
 
-This is a personal hobby project. It has undergone automated and limited in-game testing, but may contain undiscovered bugs, compatibility issues or save-file risks. **Back up important save files before use.** It is not published, endorsed or supported by OpenAI.
+**Provided AS IS, with no commitment to ongoing maintenance, bug fixes, technical support or future updates.** Future updates are entirely at the author's discretion. Existing license terms remain unchanged.
 
-**This project is provided AS IS, with no commitment to ongoing maintenance, bug fixes, technical support, or future updates.** Any future update is entirely at the author's discretion. Open Issues do not imply an obligation to respond or resolve them. The existing license terms are unchanged.
+Forks, modifications, extensions, [Issues](https://github.com/crayonmmn/TimberbornTrainer/issues) and Pull Requests are welcome. Redistributors must follow the actual MIT license and notices. Fork maintainers are responsible for their own compatibility and maintenance; an open Issue does not create an obligation to respond or fix it.
 
-## Forks and contributions
+欢迎Fork、二次开发、Issue和Pull Request。重新分发须遵守实际许可证并保留声明；修改版由修改者自行负责维护和兼容，原作者不承诺回复、修复或持续更新。
 
-Forks, independent modifications, extensions and new features are welcome. You may open Issues and Pull Requests; there is no promise of a response, acceptance or maintenance.
+## Uninstall
 
-Redistribution must comply with the actual [MIT license](LICENSE), including retaining its copyright and permission notice in copies or substantial portions, and any applicable third-party notices. Each fork's maintainer is responsible for that modified version's maintenance and compatibility; the original author does not undertake that work. This explanation adds no conditions to the license.
-
-欢迎Fork、自行修改、扩展功能以及提交Issue和Pull Request。二次分发须遵守实际MIT许可证并保留版权与许可声明；第三方修改版由其修改者自行负责维护与兼容，原作者不承诺响应、合并或维护。
-
-## Uninstalling
-
-Turn off continuous need maintenance and the trainer, then exit the game. Back up and remove only the `TimberbornTrainer` folder from your actual Documents `Timberborn/Mods/` directory. Previously modified world data is not undone. See the [full guide](docs/Usage.en.md#uninstalling).
+Turn off continuous maintenance and the global switch, exit the game, then back up/remove only this Mod folder. Earlier world changes are not undone. Language/gameplay preferences may be retained or removed separately from LocalApplicationData/TimberbornTrainer; they are not save files.

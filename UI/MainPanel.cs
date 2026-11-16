@@ -20,12 +20,12 @@ namespace TimberbornTrainer.UI {
     private readonly EventBus _events;
     private VisualElement _beaverArea;
     private Toggle _hunger, _thirst;
-    private Label _needStatus;
+    private LocalizedLabel _needStatus;
     private VisualElement _root, _panel, _resourceArea, _resourceTabs, _scienceArea, _buildingArea;
     private ScrollView _body;
     private bool _sciencePage;
-    private Label _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
-    private readonly Label[] _moduleStates = new Label[3];
+    private LocalizedLabel _status, _moduleTitle, _moduleDescription, _currentScience, _constructionStats;
+    private readonly LocalizedLabel[] _moduleStates = new LocalizedLabel[3];
     private Toggle _enabled;
     private TextField _exchangeName, _target, _add, _subtract;
     private ActionButton _setButton, _addButton, _subtractButton, _finishConstruction;
@@ -48,7 +48,7 @@ namespace TimberbornTrainer.UI {
       _root.style.position = Position.Absolute;
       _root.style.left = 260;
       _root.style.top = 105;
-      _launcher = new ActionButton("修改工具", () => SetPanelOpen(_panel.style.display.value == DisplayStyle.None));
+      _launcher = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0396"), () => SetPanelOpen(_panel.style.display.value == DisplayStyle.None));
       _launcher.style.width = 140; _root.Add(_launcher);
       _panel = new VisualElement { name = "TrainerPanel" };
       _panel.style.width = 600;
@@ -62,11 +62,11 @@ namespace TimberbornTrainer.UI {
       var title = ControlStyles.Text(Chinese.Title);
       title.style.fontSize = 21;
       var titleBar = ControlStyles.Row(); titleBar.name = "TrainerTitleBar";
-      titleBar.tooltip = "拖动标题栏移动；靠左或靠右停靠后可自动隐藏";
+      LocalizedUI.Tooltip(titleBar, global::TimberbornTrainer.Localization.TextToken.Key("t0365"));
       title.style.flexGrow = 1; titleBar.Add(title);
-      titleBar.Add(new ActionButton("×", () => SetPanelOpen(false)) { tooltip = "关闭面板" });
+      titleBar.Add(new ActionButton("×", () => SetPanelOpen(false)) { tooltip = global::TimberbornTrainer.Localization.TextToken.Key("t0190") });
       _panel.Add(titleBar);
-      _panel.Add(ControlStyles.Text("游戏：" + _session.State.GameVersion + "　模组：" + TrainerState.ModVersion));
+      _panel.Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0415") + _session.State.GameVersion + global::TimberbornTrainer.Localization.TextToken.Key("t0026") + TrainerState.ModVersion));
       var compatibility = ControlStyles.Text(_session.State.CompatibilityMessage);
       compatibility.name = "TrainerCompatibilityNotice";
       if (!_session.State.VerifiedVersion) compatibility.style.color = ControlStyles.Error;
@@ -75,14 +75,24 @@ namespace TimberbornTrainer.UI {
         var reason = _session.State.InterfaceWarning(feature);
         if (reason != null) { var notice = ControlStyles.Text(reason); notice.name = "TrainerInterfaceWarning" + feature; notice.style.color = ControlStyles.Error; _panel.Add(notice); }
       }
-      _enabled = new Toggle("全局修改器") { name = "TrainerEnabled" };
+      _enabled = new LocalizedToggle(global::TimberbornTrainer.Localization.TextToken.Key("t0321")) { name = "TrainerEnabled" };
       _enabled.style.color = ControlStyles.Light;
       _enabled.labelElement.style.color = ControlStyles.Light;
       _enabled.style.minHeight = 30;
       _enabled.SetEnabled(_session.State.Compatible);
       _enabled.RegisterValueChangedCallback(e => Run(() => _session.State.SetEnabled(e.newValue),
-        e.newValue ? "全局已启用。" : "全局已关闭，修改命令和持续性修改已停止。"));
+        e.newValue ? global::TimberbornTrainer.Localization.TextToken.Key("t0327") : global::TimberbornTrainer.Localization.TextToken.Key("t0326")));
       _panel.Add(_enabled);
+            var language = new LocalizedDropdown(global::TimberbornTrainer.Localization.TextToken.Key("t0222"), new System.Collections.Generic.List<string> { "English", "简体中文" }, TimberbornTrainer.Localization.RuntimeText.Language == "zh-CN" ? 1 : 0) { name = "TrainerLanguage" };
+      language.style.minHeight = 30;
+      var languageFeedback = ControlStyles.Text(""); languageFeedback.name = "TrainerLanguageStatus";
+      language.RegisterValueChangedCallback(e => {
+        bool saved = TimberbornTrainer.Localization.RuntimeText.Select(e.newValue == "简体中文" ? "zh-CN" : "en-US");
+        languageFeedback.text = saved ? global::TimberbornTrainer.Localization.TextToken.Key("t0420") : global::TimberbornTrainer.Localization.TextToken.Key("t0421");
+      });
+      _panel.Add(language);
+      _panel.Add(languageFeedback);
+      if (TimberbornTrainer.Localization.RuntimeText.LoadWarning != null) _panel.Add(ControlStyles.Text(TimberbornTrainer.Localization.RuntimeText.LoadWarning));
       var navigation = ControlStyles.Row();
       for (int i = 0; i < Chinese.Modules.Length; ++i) {
         int index = i;
@@ -92,15 +102,15 @@ namespace TimberbornTrainer.UI {
         var button = new ActionButton(Chinese.Modules[i], () => SelectModule(index));
         button.style.fontSize = 12;
         column.Add(button);
-        _moduleStates[i] = ControlStyles.Text("已禁用");
+        _moduleStates[i] = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0408"));
         _moduleStates[i].style.fontSize = 12;
         column.Add(_moduleStates[i]);
         navigation.Add(column);
       }
       _panel.Add(navigation);
       _resourceTabs = ControlStyles.Row();
-      _resourceTabs.Add(new ActionButton("物品库存", () => SelectResourcePage(false)) { name = "TrainerInventoryEntry" });
-      _resourceTabs.Add(new ActionButton("科研点管理", () => SelectResourcePage(true)) { name = "TrainerScienceEntry" });
+      _resourceTabs.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0392"), () => SelectResourcePage(false)) { name = "TrainerInventoryEntry" });
+      _resourceTabs.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0244"), () => SelectResourcePage(true)) { name = "TrainerScienceEntry" });
       _panel.Add(_resourceTabs);
       _body = new ScrollView();
       var body = _body;
@@ -115,57 +125,57 @@ namespace TimberbornTrainer.UI {
       _resourceArea = new VisualElement { name = "TrainerResources" };
       _scienceArea = new VisualElement { name = "TrainerScienceArea" };
       var heading = ControlStyles.Row();
-      _currentScience = ControlStyles.Text("当前科研点数：读取中");
+      _currentScience = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0158"));
       _currentScience.name = "ScienceCurrentCount";
       _currentScience.style.flexGrow = 1;
       heading.Add(_currentScience);
-      heading.Add(new ActionButton("刷新点数", RefreshScience));
+      heading.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0357"), RefreshScience));
       _scienceArea.Add(heading);
-      _target = AddScienceRow("目标点数", "0", "设置目标", ScienceOperation.Set, out _setButton);
-      _add = AddScienceRow("增加数量", "100", "增加点数", ScienceOperation.Add, out _addButton);
-      _subtract = AddScienceRow("减少数量", "100", "减少点数", ScienceOperation.Subtract, out _subtractButton);
-      _scienceArea.Add(ControlStyles.Text("仅接受零至十亿的整数；减少数量不能超过余额。"));
+      _target = AddScienceRow(global::TimberbornTrainer.Localization.TextToken.Key("t0274"), "0", global::TimberbornTrainer.Localization.TextToken.Key("t0341"), ScienceOperation.Set, out _setButton);
+      _add = AddScienceRow(global::TimberbornTrainer.Localization.TextToken.Key("t0449"), "100", global::TimberbornTrainer.Localization.TextToken.Key("t0447"), ScienceOperation.Add, out _addButton);
+      _subtract = AddScienceRow(global::TimberbornTrainer.Localization.TextToken.Key("t0210"), "100", global::TimberbornTrainer.Localization.TextToken.Key("t0209"), ScienceOperation.Subtract, out _subtractButton);
+      _scienceArea.Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0225")));
       _inventory = new MapInventoryPanel(_inventories, _editor, _events) { name = "TrainerInventoryArea" };
       _resourceArea.Add(_inventory);
       _resourceArea.Add(_scienceArea);
       body.Add(_resourceArea);
       _buildingArea = new VisualElement();
-      _finishConstruction = new ActionButton("立即完成所有建造", () => {
+      _finishConstruction = new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0262"), () => {
         _buildings.CompleteAll();
         Refresh();
       });
       _buildingArea.Add(_finishConstruction);
       _constructionStats = ControlStyles.Text("");
       _buildingArea.Add(_constructionStats);
-      _buildingArea.Add(ControlStyles.Text("仅处理点击时的工地快照，调用原生完工接口；游戏暂停或运行时均可使用。建筑自身暂停、占位与原生阻挡仍然有效。"));
-      _buildingArea.Add(ControlStyles.Text("不干预仓库、携带材料或运输预留。受阻工地可能随后按原版流程完工。"));
+      _buildingArea.Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0224")));
+      _buildingArea.Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0117")));
       body.Add(_buildingArea);
       _beaverArea = new VisualElement();
-      _hunger = AddNeedToggle("锁定饥饿需求", true);
-      _thirst = AddNeedToggle("锁定口渴需求", false);
+      _hunger = AddNeedToggle(global::TimberbornTrainer.Localization.TextToken.Key("t0359"), true);
+      _thirst = AddNeedToggle(global::TimberbornTrainer.Localization.TextToken.Key("t0360"), false);
       _beaverArea.Add(_hunger); _beaverArea.Add(_thirst);
-      _beaverArea.Add(ControlStyles.Text("恢复饥饿/口渴至原版正常满值，并暂停对应需求的自然扣减；关闭后归还原更新状态。只作用于存活海狸，食物品种满足度等其他需求不锁定。恢复模拟后生效，已开始的进食/运输可能按原版完成。"));
-      _needStatus = ControlStyles.Text("恢复模拟后开始维持需求。");
+      _beaverArea.Add(ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0201")));
+      _needStatus = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0202"));
       _beaverArea.Add(_needStatus);
       body.Add(_beaverArea);
       // Compact optional configuration; paths are tooltips instead of wrapping paragraphs.
-      var config = new Foldout { text = "配置导入与导出", value = false };
+      var config = new LocalizedFoldout { text = global::TimberbornTrainer.Localization.TextToken.Key("t0290"), value = false };
       config.style.color = ControlStyles.Light;
       var foldToggle = config.Q<Toggle>();
       if (foldToggle != null) foldToggle.labelElement.style.color = ControlStyles.Light;
-      _exchangeName = ControlStyles.Input("文件名", "我的配置.json");
+      _exchangeName = ControlStyles.Input(global::TimberbornTrainer.Localization.TextToken.Key("t0382"), global::TimberbornTrainer.Localization.TextToken.Key("t0383"));
       config.Add(_exchangeName);
       var exchange = ControlStyles.Row();
-      exchange.Add(new ActionButton("导出配置", () => Run(() => _session.Store.Export(_exchangeName.value, _session.State.Settings), "配置已导出。")));
-      exchange.Add(new ActionButton("导入配置", () => Run(() => {
+      exchange.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0164"), () => Run(() => _session.Store.Export(_exchangeName.value, _session.State.Settings), global::TimberbornTrainer.Localization.TextToken.Key("t0296"))));
+      exchange.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0165"), () => Run(() => {
         var settings = _session.Store.Import(_exchangeName.value);
         settings.Enabled = false;
         _session.State.Apply(settings);
-      }, "配置已导入，全局保持关闭；不会执行科研命令。")));
+      }, global::TimberbornTrainer.Localization.TextToken.Key("t0297"))));
       config.Add(exchange);
-      var location = ControlStyles.Text("配置与交换目录（悬停查看完整路径）");
+      var location = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0299"));
       location.style.fontSize = 12;
-      location.tooltip = "配置目录：" + _session.Store.DirectoryPath + "\n交换目录：" + System.IO.Path.Combine(_session.Store.DirectoryPath, "Exchange");
+      location.tooltip = global::TimberbornTrainer.Localization.TextToken.Key("t0292") + _session.Store.DirectoryPath + global::TimberbornTrainer.Localization.TextToken.Key("t0004") + System.IO.Path.Combine(_session.Store.DirectoryPath, "Exchange");
       config.Add(location);
       _panel.Add(config);
       _status = ControlStyles.Text(_session.StartupMessage);
@@ -174,14 +184,14 @@ namespace TimberbornTrainer.UI {
       _status.style.maxHeight = 110;
       _panel.Add(_status);
       var footer = ControlStyles.Row();
-      footer.Add(new ActionButton("保存配置", () => Run(() => _session.Store.Save(_session.State.Settings), "配置已保存。")));
-      footer.Add(new ActionButton("读取配置", () => Run(() => {
+      footer.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0112"), () => Run(() => _session.Store.Save(_session.State.Settings), global::TimberbornTrainer.Localization.TextToken.Key("t0295"))));
+      footer.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0183"), () => Run(() => {
         var settings = _session.Store.Load();
         settings.Enabled = false;
         _session.State.Apply(settings);
-      }, "配置已读取，全局保持关闭；科研点数没有回滚。")));
-      footer.Add(new ActionButton("恢复默认", () => Run(() => _session.State.RestoreDefaults(), "设置已恢复默认；已获得的科研点数不会撤销。")));
-      footer.Add(new ActionButton("关闭面板", () => SetPanelOpen(false)));
+      }, global::TimberbornTrainer.Localization.TextToken.Key("t0298"))));
+      footer.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0203"), () => Run(() => _session.State.RestoreDefaults(), global::TimberbornTrainer.Localization.TextToken.Key("t0342"))));
+      footer.Add(new ActionButton(global::TimberbornTrainer.Localization.TextToken.Key("t0190"), () => SetPanelOpen(false)));
       _panel.Add(footer);
       _session.State.Changed += Refresh;
       _loaded = true;
@@ -215,22 +225,22 @@ namespace TimberbornTrainer.UI {
       return field;
     }
     private Toggle AddNeedToggle(string text, bool hunger) {
-      var toggle = new Toggle(text);
+      var toggle = new LocalizedToggle(text);
       toggle.labelElement.style.color = ControlStyles.Light;
       toggle.RegisterValueChangedCallback(e => Run(() => {
         var settings = _session.State.Settings;
         if (hunger) settings.LockHunger = e.newValue; else settings.LockThirst = e.newValue;
         _session.State.Apply(settings);
-      }, "需求维持偏好已更新；须全局启用才生效。"));
+      }, global::TimberbornTrainer.Localization.TextToken.Key("t0401")));
       return toggle;
     }
 
     private void ExecuteScience(ScienceOperation operation, string input) {
       var result = _resources.Science.Execute(operation, input);
-      var before = result.Before.HasValue ? result.Before.Value.ToString() : "未知";
-      var after = result.After.HasValue ? result.After.Value.ToString() : "未知";
-      var delta = result.Delta.HasValue ? result.Delta.Value.ToString("+0;-0;0") : "无法确认";
-      _status.text = result.Message + "\n修改前：" + before + "；实际变化：" + delta + "；修改后：" + after;
+      var before = result.Before.HasValue ? result.Before.Value.ToString() : global::TimberbornTrainer.Localization.TextToken.Key("t0376");
+      var after = result.After.HasValue ? result.After.Value.ToString() : global::TimberbornTrainer.Localization.TextToken.Key("t0376");
+      var delta = result.Delta.HasValue ? result.Delta.Value.ToString("+0;-0;0") : global::TimberbornTrainer.Localization.TextToken.Key("t0385");
+      _status.text = result.Message + global::TimberbornTrainer.Localization.TextToken.Key("t0013") + before + global::TimberbornTrainer.Localization.TextToken.Key("t0067") + delta + global::TimberbornTrainer.Localization.TextToken.Key("t0076") + after;
       _status.style.color = result.Success ? ControlStyles.Accent : ControlStyles.Error;
       RefreshScience();
     }
@@ -246,7 +256,7 @@ namespace TimberbornTrainer.UI {
       if (!_loaded) return;
       int points;
       bool readable = _resources.Science.TryRead(out points);
-      _currentScience.text = readable ? "当前科研点数：" + points : "当前科研点数：读取失败";
+      _currentScience.text = readable ? global::TimberbornTrainer.Localization.TextToken.Key("t0156") + points : global::TimberbornTrainer.Localization.TextToken.Key("t0157");
       _currentScience.style.color = readable ? ControlStyles.Light : ControlStyles.Error;
       Refresh();
     }
@@ -261,20 +271,20 @@ namespace TimberbornTrainer.UI {
       }
       bool active = _session.State.EffectiveEnabled;
       _inventory.SetCommandsEnabled(active);
-      _moduleStates[0].text = _resources.Science.RuntimeError ? "运行异常" : active ? "已启用" : "已禁用";
+      _moduleStates[0].text = _resources.Science.RuntimeError ? global::TimberbornTrainer.Localization.TextToken.Key("t0444") : active ? global::TimberbornTrainer.Localization.TextToken.Key("t0409") : global::TimberbornTrainer.Localization.TextToken.Key("t0408");
       _moduleStates[0].style.color = _resources.Science.RuntimeError ? ControlStyles.Error : active ? ControlStyles.Accent : ControlStyles.Muted;
-      _moduleStates[1].text = _buildings.RuntimeError ? "结果需检查" : _buildings.Busy ? "执行中" : active ? "手动命令" : "已禁用";
+      _moduleStates[1].text = _buildings.RuntimeError ? global::TimberbornTrainer.Localization.TextToken.Key("t0221") : _buildings.Busy ? global::TimberbornTrainer.Localization.TextToken.Key("t0455") : active ? global::TimberbornTrainer.Localization.TextToken.Key("t0353") : global::TimberbornTrainer.Localization.TextToken.Key("t0408");
       _moduleStates[1].style.color = _buildings.RuntimeError ? ControlStyles.Error : ControlStyles.Muted;
       _finishConstruction.Available(active && !_buildings.Busy);
       _hunger.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
       _thirst.SetEnabled(_session.State.Compatible && !_beavers.RuntimeError);
       ControlStyles.ToggleState(_hunger, _session.State.Settings.LockHunger);
       ControlStyles.ToggleState(_thirst, _session.State.Settings.LockThirst);
-      _moduleStates[2].text = _beavers.RuntimeError ? "运行异常" : active &&
-        (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? "已启用" : "已禁用";
-      _needStatus.text = "本场景维持：饥饿 " + _beavers.HungerCount + "；口渴 " + _beavers.ThirstCount +
-        "；无法安全接管的需求 " + _beavers.UnsafeNeeds + "。";
-      _constructionStats.text = _buildings.LastResult?.Message ?? "尚未执行批量完工。";
+      _moduleStates[2].text = _beavers.RuntimeError ? global::TimberbornTrainer.Localization.TextToken.Key("t0444") : active &&
+        (_session.State.Settings.LockHunger || _session.State.Settings.LockThirst) ? global::TimberbornTrainer.Localization.TextToken.Key("t0409") : global::TimberbornTrainer.Localization.TextToken.Key("t0408");
+      _needStatus.text = global::TimberbornTrainer.Localization.TextToken.Key("t0113") + _beavers.HungerCount + global::TimberbornTrainer.Localization.TextToken.Key("t0055") + _beavers.ThirstCount +
+        global::TimberbornTrainer.Localization.TextToken.Key("t0074") + _beavers.UnsafeNeeds + global::TimberbornTrainer.Localization.TextToken.Key("t0096");
+      _constructionStats.text = _buildings.LastResult?.Message ?? global::TimberbornTrainer.Localization.TextToken.Key("t0338");
       for (int i = 2; i < _moduleStates.Length; ++i) _moduleStates[i].style.color = ControlStyles.Muted;
       _setButton.Available(active);
       _addButton.Available(active);
@@ -284,9 +294,9 @@ namespace TimberbornTrainer.UI {
     private void SelectModule(int index) {
       _selected = index;
       _moduleTitle.text = Chinese.Modules[index];
-      _moduleDescription.text = index == 0 ? "在地图中选中仓库，自动读取其已配置物品；修改需暂停。科研点使用独立入口。"
-        : index == 1 ? "立即完成所有建造：点击时处理现有工地，不会自动处理新工地。" : Chinese.Descriptions[index];
-      if (index == 2) _moduleDescription.text = "饥饿与口渴可分别开启，关闭后恢复正常消耗。";
+      _moduleDescription.text = index == 0 ? global::TimberbornTrainer.Localization.TextToken.Key("t0445")
+        : index == 1 ? global::TimberbornTrainer.Localization.TextToken.Key("t0263") : Chinese.Descriptions[index];
+      if (index == 2) _moduleDescription.text = global::TimberbornTrainer.Localization.TextToken.Key("t0204");
       _resourceArea.style.display = _resourceTabs.style.display = index == 0 ? DisplayStyle.Flex : DisplayStyle.None;
       if (index != 0) _inventory.Close();
       if (index == 0) SelectResourcePage(_sciencePage);
@@ -307,7 +317,7 @@ namespace TimberbornTrainer.UI {
       try { action(); _status.text = success; _status.style.color = ControlStyles.Accent; }
       catch (Exception e) {
         _status.text = e is ArgumentException || e is InvalidOperationException
-          ? "操作失败：" + e.Message : "操作失败，请检查文件内容和目录权限。";
+          ? global::TimberbornTrainer.Localization.TextToken.Key("t0134") + e.Message : global::TimberbornTrainer.Localization.TextToken.Key("t0133");
         _status.style.color = ControlStyles.Error;
       }
       Refresh();
@@ -319,6 +329,7 @@ namespace TimberbornTrainer.UI {
       _inventory?.Unload();
       _inventory = null;
       if (_session.State != null) _session.State.Changed -= Refresh;
+      if (_root != null) LocalizedUI.Release(_root);
       _root?.RemoveFromHierarchy();
       _root = null;
     }

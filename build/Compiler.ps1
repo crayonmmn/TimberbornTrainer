@@ -9,12 +9,18 @@ function Import-ExistingCompiler([string]$Directory) {
 
 function Initialize-TextLocalization([string]$Language, [string]$ProjectRoot) {
   $script:OutputLanguage = $Language
-  $script:LocalizedStrings = Get-Content -LiteralPath (Join-Path $ProjectRoot 'UI/Localization/strings.en.json') -Raw | ConvertFrom-Json -AsHashtable
+    $zh = Get-Content -LiteralPath (Join-Path $ProjectRoot 'Languages/zh-CN.json') -Raw | ConvertFrom-Json -AsHashtable
+  $en = Get-Content -LiteralPath (Join-Path $ProjectRoot 'Languages/en-US.json') -Raw | ConvertFrom-Json -AsHashtable
+  $script:LocalizedStrings = @{}
+  foreach ($key in $zh.Keys) { $script:LocalizedStrings[$zh[$key]] = $en[$key] }
   $script:TestTextExpectations = Get-Content -LiteralPath (Join-Path $ProjectRoot 'Tests/TextExpectations.en.json') -Raw | ConvertFrom-Json -AsHashtable
   $script:LocalizedLiteralCount = 0
 }
 
 function Convert-LocalizedSource([string]$Text, [string]$Source, $ParseOptions) {
+  # Only legacy regression expectations are localized at compile time. Production
+  # uses external runtime keys; bilingual tests must retain both expected languages.
+  if ($Source -notmatch '[\\/]Tests[\\/]' -or $Source -match 'Runtime(?:Ui)?LocalizationTests\.cs$') { return $Text }
   if ($script:OutputLanguage -ne 'en') { return $Text }
   $parsed = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($Text, $ParseOptions)
   $tokens = @($parsed.GetRoot().DescendantTokens() | Where-Object RawKind -EQ ([int][Microsoft.CodeAnalysis.CSharp.SyntaxKind]::StringLiteralToken) | Sort-Object { $_.Span.Start } -Descending)
@@ -41,6 +47,7 @@ function Invoke-SourceCompilation {
     $text = [IO.File]::ReadAllText($source)
     if (Get-Variable OutputLanguage -Scope Script -ErrorAction SilentlyContinue) {
       $text = Convert-LocalizedSource $text $source $parseOptions
+      if ($source -match '[\\/]Tests[\\/]' -and $source -notmatch '(?:LocalizedAssertions|Runtime(?:Ui)?LocalizationTests)\.cs$') { $text = "using TimberbornTrainer.Localization;`n" + $text.Replace(".Contains(", ".ContainsLocalized(") }
     }
     $trees.Add([Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText($text, $parseOptions, $source, [Text.Encoding]::UTF8))
   }
@@ -56,7 +63,7 @@ function Invoke-SourceCompilation {
   $stream = [IO.File]::Create($temporary)
   try { $result = $compilation.Emit($stream) }
   finally { $stream.Dispose() }
-  foreach ($diagnostic in $result.Diagnostics) { Write-Output $diagnostic.ToString() }
+  foreach ($diagnostic in $result.Diagnostics) { if ($diagnostic.Severity -ne [Microsoft.CodeAnalysis.DiagnosticSeverity]::Hidden) { Write-Output $diagnostic.ToString() } }
   if (!$result.Success) {
     Remove-Item -LiteralPath $temporary
     throw '编译失败。'

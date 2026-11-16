@@ -12,11 +12,11 @@ namespace TimberbornTrainer.Core {
       foreach (TrainerFeature feature in Enum.GetValues(typeof(TrainerFeature))) {
         try { Check(feature, resolve); errors[feature] = null; }
         catch (Exception e) {
-          var name = feature == TrainerFeature.Science ? "科研点" : feature == TrainerFeature.Inventory ? "库存编辑" : feature == TrainerFeature.Construction ? "批量建造" : "海狸需求维持";
-          errors[feature] = name + "接口兼容性警告（仍可尝试使用）：" + e.Message;
+          var name = feature == TrainerFeature.Science ? global::TimberbornTrainer.Localization.TextToken.Key("t0243") : feature == TrainerFeature.Inventory ? global::TimberbornTrainer.Localization.TextToken.Key("t0247") : feature == TrainerFeature.Construction ? global::TimberbornTrainer.Localization.TextToken.Key("t0300") : global::TimberbornTrainer.Localization.TextToken.Key("t0200");
+          errors[feature] = name + global::TimberbornTrainer.Localization.TextToken.Key("t0216") + e.Message;
         }
       }
-      return feature => errors.TryGetValue(feature, out var error) ? error : "未知功能接口；仅提示，不限制使用。";
+      return feature => errors.TryGetValue(feature, out var error) ? error : global::TimberbornTrainer.Localization.TextToken.Key("t0377");
     }
     private static Type Resolve(string fullName) {
       var split = fullName.LastIndexOf('.');
@@ -60,7 +60,7 @@ namespace TimberbornTrainer.Core {
         foreach (var name in new[] { "MaximumValue", "StartingValue" }) Property(resolve, "Timberborn.NeedSpecs.NeedSpec", name, typeof(float));
         int overloads = 0;
         foreach (var m in Require(resolve, manager).GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)) if (m.Name == "GetNeed") ++overloads;
-        if (overloads != 1) throw new MissingMemberException(manager + ".GetNeed存在歧义");
+        if (overloads != 1) throw new MissingMemberException(manager + global::TimberbornTrainer.Localization.TextToken.Key("t0095"));
         var updating = need.GetField("_updateEnabled", BindingFlags.NonPublic | BindingFlags.Instance);
         if (updating == null || updating.FieldType != typeof(bool) || updating.IsInitOnly) throw new MissingMemberException("Need._updateEnabled");
       }

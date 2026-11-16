@@ -20,37 +20,37 @@ namespace TimberbornTrainer.Modules {
       _catalog = catalog; _session = session; _speed = speed;
     }
     private string PermissionError() {
-      if (_unloaded) return "场景已卸载，未执行物品修改。";
-      if (_session?.State == null) return "场景尚未就绪，未执行物品修改。";
-      if (!_session.State.Compatible) return "运行环境不匹配，未执行物品修改。";
-      if (!_session.State.EffectiveEnabled) return "请先开启全局修改器，未执行物品修改。";
+      if (_unloaded) return global::TimberbornTrainer.Localization.TextToken.Key("t0142");
+      if (_session?.State == null) return global::TimberbornTrainer.Localization.TextToken.Key("t0138");
+      if (!_session.State.Compatible) return global::TimberbornTrainer.Localization.TextToken.Key("t0443");
+      if (!_session.State.EffectiveEnabled) return global::TimberbornTrainer.Localization.TextToken.Key("t0309");
       if (_speed == null || _speed.CurrentSpeed != 0 || UnityEngine.Time.timeScale != 0)
-        return "全局修改器已开启；请先使用游戏原生暂停按钮暂停模拟后再修改物品。";
+        return global::TimberbornTrainer.Localization.TextToken.Key("t0325");
       return null;
     }
     public string ReadOnlyReason(string targetId, string resource) {
-      if (_unloaded) return "场景已卸载，请重新进入聚居地。";
+      if (_unloaded) return global::TimberbornTrainer.Localization.TextToken.Key("t0141");
       try {
         var stock = _catalog.ResolveForEdit(targetId, resource);
         return stock != null && stock.Usable ? null :
-          "当前目标已失效或不属于可编辑库存。仅支持已完工普通仓储、地区中心自身输出；施工、生产、未知及尚未适配的自定义库存只读。";
-      } catch { return "无法确认库存用途、资源或对象身份，请主动刷新。"; }
+          global::TimberbornTrainer.Localization.TextToken.Key("t0160");
+      } catch { return global::TimberbornTrainer.Localization.TextToken.Key("t0386"); }
     }
     public InventoryEditResult Execute(string targetId, string resource, InventoryWriteOperation operation, string input) {
-      if (_busy) return new InventoryEditResult { Message = "已有库存命令执行中，拒绝重入。" };
+      if (_busy) return new InventoryEditResult { Message = global::TimberbornTrainer.Localization.TextToken.Key("t0411") };
       _busy = true;
       try {
-        string denial = null, permissionState = "未检查";
+        string denial = null, permissionState = global::TimberbornTrainer.Localization.TextToken.Key("t0367");
         var r = InventoryEditCommands.Execute(() => _catalog.ResolveForEdit(targetId, resource), () => {
           denial = PermissionError();
-          permissionState = "全局=" + (_session?.State?.EffectiveEnabled == true) + "；原生速度=" +
-            (_speed == null ? "未知" : _speed.CurrentSpeed.ToString()) + "；时间倍率=" + UnityEngine.Time.timeScale + "；已卸载=" + _unloaded;
+          permissionState = global::TimberbornTrainer.Localization.TextToken.Key("t0320") + (_session?.State?.EffectiveEnabled == true) + global::TimberbornTrainer.Localization.TextToken.Key("t0086") +
+            (_speed == null ? global::TimberbornTrainer.Localization.TextToken.Key("t0376") : _speed.CurrentSpeed.ToString()) + global::TimberbornTrainer.Localization.TextToken.Key("t0066") + UnityEngine.Time.timeScale + global::TimberbornTrainer.Localization.TextToken.Key("t0078") + _unloaded;
           return denial == null;
         }, operation, input);
         if (denial != null && !r.NativeCallStarted) r.Message = denial;
-        UnityEngine.Debug.Log("海狸修改工具：库存命令 " + operation + "；状态=" + r.State
-          + "；调用开始=" + r.NativeCallStarted + "；前=" + r.Before + "；后=" + r.After
-          + "；请求差额=" + r.RequestedDelta + "；" + permissionState + "；反馈=" + r.Message + "。无自动重试。");
+        UnityEngine.Debug.Log(global::TimberbornTrainer.Localization.RuntimeText.Render(global::TimberbornTrainer.Localization.TextToken.Key("t0196") + operation + global::TimberbornTrainer.Localization.TextToken.Key("t0091") + r.State
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0044") + r.NativeCallStarted + global::TimberbornTrainer.Localization.TextToken.Key("t0061") + r.Before + global::TimberbornTrainer.Localization.TextToken.Key("t0046") + r.After
+          + global::TimberbornTrainer.Localization.TextToken.Key("t0063") + r.RequestedDelta + global::TimberbornTrainer.Localization.TextToken.Key("t0040") + permissionState + global::TimberbornTrainer.Localization.TextToken.Key("t0045") + r.Message + global::TimberbornTrainer.Localization.TextToken.Key("t0098")));
         return r;
       } finally { _busy = false; }
     }
@@ -93,7 +93,7 @@ namespace TimberbornTrainer.Modules {
         _catalog = catalog; _target = target; _resource = resource;
       }
       public bool Usable => _catalog.Editable(_target, _resource);
-      private Inventory Current() { if (!Usable) throw new InvalidOperationException("库存身份已变化"); return _target.Inventory; }
+      private Inventory Current() { if (!Usable) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0254")); return _target.Inventory; }
       public int Read() => Current().AmountInStock(_resource);
       public int UnreservedStock() => Current().UnreservedAmountInStock(_resource);
       public int FreeCapacity() {
@@ -103,12 +103,12 @@ namespace TimberbornTrainer.Modules {
       }
       public void Give(int amount) {
         var inventory = Current();
-        if (amount <= 0 || amount > FreeCapacity()) throw new InvalidOperationException("原生未预留空位不足");
+        if (amount <= 0 || amount > FreeCapacity()) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0437"));
         inventory.GiveExisting(new GoodAmount(_resource, amount));
       }
       public void Take(int amount) {
         var inventory = Current();
-        if (amount <= 0 || amount > inventory.UnreservedAmountInStock(_resource)) throw new InvalidOperationException("原生未预留库存不足");
+        if (amount <= 0 || amount > inventory.UnreservedAmountInStock(_resource)) throw new InvalidOperationException(global::TimberbornTrainer.Localization.TextToken.Key("t0438"));
         inventory.TakeExisting(new GoodAmount(_resource, amount));
       }
     }

@@ -11,7 +11,7 @@ namespace TimberbornTrainer.Modules {
     public InventorySnapshot Snapshot { get; private set; }
     public string SelectedGoodId { get; private set; }
     public InventoryScanReport LastScan => _catalog?.LastScan;
-    public string Message { get; private set; } = "请主动扫描资源与库存。";
+    public string Message { get; private set; } = global::TimberbornTrainer.Localization.TextToken.Key("t0318");
     public bool Opened { get; private set; }
     public InventoryBrowser(IInventoryCatalog catalog) { _catalog = catalog; }
     public void Switch(InventorySource source) {
@@ -25,7 +25,7 @@ namespace TimberbornTrainer.Modules {
         var report = _catalog.Scan();
         if (!report.Completed) { Reset(); Message = report.Message; return; }
         Discover();
-      } catch { Reset(); _catalog.Clear(); Message = "扫描失败，已清理目录，请主动重试。"; }
+      } catch { Reset(); _catalog.Clear(); Message = global::TimberbornTrainer.Localization.TextToken.Key("t0330"); }
     }
     public void Discover() {
       if (_catalog == null) return;
@@ -36,14 +36,14 @@ namespace TimberbornTrainer.Modules {
         if (previous != null && Targets.Any(t => t.Id == previous)) Select(previous);
         else {
           ClearSelection();
-          if (previous != null) Message = "目录中原库存目标已失效或被安全排除，已清除目标和资源选择。";
+          if (previous != null) Message = global::TimberbornTrainer.Localization.TextToken.Key("t0284");
           else if (Source == InventorySource.Settlement && Targets.Length == 1) Select(Targets[0].Id);
         }
-      } catch { Reset(); Message = "读取扫描目录失败，请主动重新扫描。"; }
+      } catch { Reset(); Message = global::TimberbornTrainer.Localization.TextToken.Key("t0186"); }
     }
     public void Select(string id) {
       if (_catalog == null) return;
-      if (!Targets.Any(t => t.Id == id)) { ClearSelection(); Message = "目标不在当前扫描目录中，请重新扫描。"; return; }
+      if (!Targets.Any(t => t.Id == id)) { ClearSelection(); Message = global::TimberbornTrainer.Localization.TextToken.Key("t0273"); return; }
       string previousTarget = Snapshot?.Target?.Id;
       string previousGood = SelectedGoodId;
       if (previousTarget != id) { previousGood = null; _resourceCleared = false; }
@@ -54,19 +54,19 @@ namespace TimberbornTrainer.Modules {
         if (previousGood != null && snapshot.Resources.Any(r => r.GoodId == previousGood)) SelectedGoodId = previousGood;
         else if (previousGood != null) {
           SelectedGoodId = null; _resourceCleared = true;
-          Message += " 当前资源已移除或不再属于该库存，已清除资源选择；库存目标保留。";
+          Message += global::TimberbornTrainer.Localization.TextToken.Key("t0023");
         } else SelectedGoodId = _resourceCleared ? null : snapshot.Resources.FirstOrDefault()?.GoodId;
-      } catch { RemoveSelection(id); Message = "目标库存读取异常，已清除该选择及引用，请重新扫描。"; }
+      } catch { RemoveSelection(id); Message = global::TimberbornTrainer.Localization.TextToken.Key("t0276"); }
     }
     public void SelectGood(string id) {
       if (Snapshot == null || !Snapshot.Valid) return;
       if (id != null && Snapshot.Resources.Any(r => r.GoodId == id)) { SelectedGoodId = id; _resourceCleared = false; }
-      else { SelectedGoodId = null; _resourceCleared = true; Message = "资源已失效或不在当前库存快照中，请主动刷新。"; }
+      else { SelectedGoodId = null; _resourceCleared = true; Message = global::TimberbornTrainer.Localization.TextToken.Key("t0473"); }
     }
     public bool Focus(string id) {
       if (_catalog == null || !Targets.Any(t => t.Id == id)) return false;
       try { if (_catalog.Focus(id)) return true; } catch { }
-      RemoveSelection(id); Message = "目标已失效或不支持原生定位，已清除该选择，请重新扫描。"; return false;
+      RemoveSelection(id); Message = global::TimberbornTrainer.Localization.TextToken.Key("t0281"); return false;
     }
     private void RemoveSelection(string id) { Targets = Targets.Where(t => t.Id != id).ToArray(); ClearSelection(); }
     private void ClearSelection() { Snapshot = null; SelectedGoodId = null; _resourceCleared = false; }
