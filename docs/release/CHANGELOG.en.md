@@ -1,3 +1,13 @@
+# v0.6.0
+
+- Manual English / Simplified Chinese only; English default without a valid saved preference. No automatic game-language detection.
+- Preserve existing language preferences and runtime text refresh.
+- Fix UI Toolkit label attachment; clarify the global modification switch and help text.
+- Keep resource, research, construction and beaver needs algorithms and safety checks unchanged.
+- User reports in-game acceptance. Regression 755 per language context; localization/package 27; Release 0 errors/warnings.
+
+---
+
 # v0.5.0
 
 [简体中文](CHANGELOG.zh-CN.md)

@@ -17,7 +17,8 @@ Invoke-SourceCompilation -Sources $sources -References $references -Output $test
 if (!$CompileOnly) {
 [Reflection.Assembly]::LoadFrom($jsonDll) | Out-Null
 [Reflection.Assembly]::LoadFrom($testDll) | Out-Null
-[TimberbornTrainer.Localization.RuntimeText]::Configure((Join-Path $projectRoot 'Languages'), (Join-Path $testRoot 'language-test.json'), $(if ($Language -eq 'en') { 'en-US' } else { 'zh-CN' }))
+[TimberbornTrainer.Localization.RuntimeText]::Configure((Join-Path $projectRoot 'Languages'), (Join-Path $testRoot 'language-test.json'))
+[TimberbornTrainer.Localization.RuntimeText]::Select($(if ($Language -eq 'en') { 'en-US' } else { 'zh-CN' })) | Out-Null
 $isolated = Join-Path $testRoot ([Guid]::NewGuid().ToString('N'))
 [TimberbornTrainer.Tests.ConfigTests]::Run($isolated)
 [TimberbornTrainer.Tests.ScienceTests]::Run()

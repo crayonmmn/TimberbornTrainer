@@ -12,7 +12,7 @@ namespace TimberbornTrainer.Core {
     public string GameVersion { get; }
     public string CompatibilityMessage { get; }
     public const string TargetVersion = "1.1.2.8-ffc2de0-sw";
-    public const string ModVersion = "0.5.0";
+    public const string ModVersion = "0.6.0";
 
     public TrainerState(string version, bool windows64, string unityVersion, Func<TrainerFeature, string> interfaceWarning = null) {
       GameVersion = version ?? global::TimberbornTrainer.Localization.TextToken.Key("t0376");

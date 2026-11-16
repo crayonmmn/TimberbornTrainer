@@ -7,7 +7,6 @@ using Timberborn.Versioning;
 using TimberbornTrainer.UI;
 using TimberbornTrainer.Modules;
 using UnityEngine;
-using Timberborn.Localization;
 using TimberbornTrainer.Localization;
 
 namespace TimberbornTrainer.Core {
@@ -37,11 +36,9 @@ namespace TimberbornTrainer.Core {
     public ConfigStore Store { get; private set; }
     public string StartupMessage { get; private set; } = "";
     private bool _compatibilityWarningLogged;
-    private readonly ILocalizationService _localization;
-    public TrainerSession(ILocalizationService localization) { _localization = localization; }
+    public TrainerSession() { }
 
     public void Load() {
-      try { RuntimeText.SelectInitial(_localization.CurrentLanguage); } catch { RuntimeText.SelectInitial(null); }
       string version;
       try { version = GameVersions.CurrentVersion.Full; }
       catch { version = global::TimberbornTrainer.Localization.TextToken.Key("t0376"); }

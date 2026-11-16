@@ -78,13 +78,21 @@ namespace TimberbornTrainer.UI {
       _enabled = new LocalizedToggle(global::TimberbornTrainer.Localization.TextToken.Key("t0321")) { name = "TrainerEnabled" };
       _enabled.style.color = ControlStyles.Light;
       _enabled.labelElement.style.color = ControlStyles.Light;
+      _enabled.labelElement.style.whiteSpace = WhiteSpace.Normal;
       _enabled.style.minHeight = 30;
       _enabled.SetEnabled(_session.State.Compatible);
       _enabled.RegisterValueChangedCallback(e => Run(() => _session.State.SetEnabled(e.newValue),
         e.newValue ? global::TimberbornTrainer.Localization.TextToken.Key("t0327") : global::TimberbornTrainer.Localization.TextToken.Key("t0326")));
       _panel.Add(_enabled);
-            var language = new LocalizedDropdown(global::TimberbornTrainer.Localization.TextToken.Key("t0222"), new System.Collections.Generic.List<string> { "English", "简体中文" }, TimberbornTrainer.Localization.RuntimeText.Language == "zh-CN" ? 1 : 0) { name = "TrainerLanguage" };
+      var enabledHelp = ControlStyles.Text(global::TimberbornTrainer.Localization.TextToken.Key("t0478"));
+      enabledHelp.name = "TrainerEnabledHelp";
+      _panel.Add(enabledHelp);
+      var language = new LocalizedDropdown(global::TimberbornTrainer.Localization.TextToken.Key("t0222"), new System.Collections.Generic.List<string> { "English", "简体中文" }, TimberbornTrainer.Localization.RuntimeText.Language == "zh-CN" ? 1 : 0) { name = "TrainerLanguage" };
       language.style.minHeight = 30;
+      language.labelElement.style.color = ControlStyles.Light;
+      language.labelElement.style.minWidth = 140;
+      language.labelElement.style.flexShrink = 0;
+      language.labelElement.style.whiteSpace = WhiteSpace.Normal;
       var languageFeedback = ControlStyles.Text(""); languageFeedback.name = "TrainerLanguageStatus";
       language.RegisterValueChangedCallback(e => {
         bool saved = TimberbornTrainer.Localization.RuntimeText.Select(e.newValue == "简体中文" ? "zh-CN" : "en-US");

@@ -220,7 +220,7 @@
   "t0219": "Result unconfirmed; do not repeat",
   "t0220": "Result cannot be confirmed; no automatic retry or rollback.",
   "t0221": "Check result",
-  "t0222": "Interface language",
+  "t0222": "Language / 语言",
   "t0223": "Only edits the warehouse selected on the map. Pause the game and enable the trainer first.",
   "t0224": "Uses the native completion API once for existing sites. Works while paused or running. Building pause, occupancy and native blockers remain effective.",
   "t0225": "Integers from 0 to 1,000,000,000 only. Removal cannot exceed the balance.",
@@ -319,7 +319,7 @@
   "t0318": "Scan goods and inventories first.",
   "t0319": "Use unverified versions at your own risk.\nVerified version: ",
   "t0320": "global enabled=",
-  "t0321": "Enable trainer",
+  "t0321": "Enable global changes",
   "t0322": "Trainer disabled. Science points cannot be changed.",
   "t0323": "Trainer disabled.",
   "t0324": "Trainer disabled or scene unloaded. Not executed.",
@@ -475,5 +475,6 @@
   "t0474": "Good is registered but not allowed by this inventory. Remaining stock is shown; additions are unavailable.",
   "t0475": "Good registered but absent from this scan catalog. Scan again.",
   "t0476": "Goods domain missing or beyond the diagnostic limit; reservations unknown.",
-  "t0477": "Good ID: "
+  "t0477": "Good ID: ",
+  "t0478": "Enables inventory, research and construction commands, plus selected hunger/thirst maintenance. Reading remains available while off. Inventory editing also requires pausing the game."
 }

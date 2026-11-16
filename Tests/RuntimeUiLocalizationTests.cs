@@ -18,7 +18,7 @@ namespace TimberbornTrainer.Tests {
     private sealed class Points : ISciencePoints { public int Value = 100; public int Read() => Value; public void Add(int value) { Value += value; } public void Subtract(int value) { Value -= value; } }
     public static void Run(string languages, string directory) {
       _checks = 0;
-      RuntimeText.Configure(languages, Path.Combine(directory, "language.json"), "enUS");
+      RuntimeText.Configure(languages, Path.Combine(directory, "language.json"));
       var state = new TrainerState(TrainerState.TargetVersion, true, "6000.5.11f1");
       var session = new TrainerSession { State = state, Store = new ConfigStore(directory) };
       var points = new Points(); var layout = new UILayout(); var catalog = new NativeInventoryCatalog(); var events = new EventBus();
@@ -27,6 +27,12 @@ namespace TimberbornTrainer.Tests {
       panel.Load(); var root = layout.Root;
       root.Tree().OfType<Button>().Single(b => b.text == "Trainer").Click();
       var language = root.Q<DropdownField>("TrainerLanguage"); Check(language != null, "Actual language entry registered");
+      Check(language.label == "Language / 语言" && ReferenceEquals(language.labelElement.parent, language), "Language label is attached through native BaseField label property");
+      Check(language.choices.SequenceEqual(new[] { "English", "简体中文" }) && language.value == "English", "Only two manual options, English default");
+      var enabled = root.Q<Toggle>("TrainerEnabled");
+      Check(enabled.label == "Enable global changes" && ReferenceEquals(enabled.labelElement.parent, enabled), "English global label is nonempty and attached");
+      var help = root.Q<Label>("TrainerEnabledHelp");
+      Check(help.text.Contains("Inventory editing also requires pausing") && help.style.whiteSpace == WhiteSpace.Normal, "English global explanation wraps and explains pause condition");
       root.Q<Toggle>("TrainerEnabled").value = true;
       var window = (FloatingWindow)typeof(MainPanel).GetField("_window", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(panel);
       var windowState = window.State; float x = windowState.X, y = windowState.Y; var edge = windowState.Edge; bool hidden = windowState.Hidden;
@@ -36,6 +42,8 @@ namespace TimberbornTrainer.Tests {
       int subscriptions = events.Count;
       var originalButton = root.Q<Button>("TrainerScienceEntry");
       language.value = "简体中文";
+      Check(language.label == "Language / 语言" && ReferenceEquals(language.labelElement.parent, language), "Language label stays attached in Chinese");
+      Check(enabled.label == "启用全局修改" && ReferenceEquals(enabled.labelElement.parent, enabled) && help.text.Contains("关闭时仍可读取"), "Chinese global label and explanation refresh together");
       Check(ReferenceEquals(originalButton, root.Q<Button>("TrainerScienceEntry")) && originalButton.text == "科研点管理", "Text refresh without rebuilding controls");
       Check(state.EffectiveEnabled && points.Value == 100 && events.Count == subscriptions, "No gameplay writes or duplicate native subscriptions");
       Check(ReferenceEquals(windowState, window.State) && x == windowState.X && y == windowState.Y && edge == windowState.Edge && hidden == windowState.Hidden, "Window state unchanged");
@@ -44,10 +52,12 @@ namespace TimberbornTrainer.Tests {
       root.Q<TextField>("ScienceAddInput").value = "10"; root.Q<Button>("ScienceAddButton").Click();
       var status = root.Q<Label>("TrainerStatus"); Check(points.Value == 110 && status.text.Contains("成功"), "Actual science result Chinese");
       language.value = "English";
+      Check(enabled.label == "Enable global changes" && ReferenceEquals(enabled.labelElement.parent, enabled) && help.text.Contains("Reading remains available"), "English global label and explanation survive switching back");
       Check(points.Value == 110 && status.text.Contains("Success") && !status.text.Contains("成功"), "Cached operation result changes language without repeating operation");
       root.Q<TextField>("ScienceAddInput").value = "-1"; root.Q<Button>("ScienceAddButton").Click();
       Check(status.text.Contains("integer") || status.text.Contains("Integer"), "Actual validation message English");
       for (int i = 0; i < 10; ++i) { language.value = "简体中文"; language.value = "English"; }
+      Check(ReferenceEquals(enabled.labelElement.parent, enabled) && ReferenceEquals(language.labelElement.parent, language), "Repeated switches retain both label nodes");
       Check(points.Value == 110 && state.EffectiveEnabled && events.Count == 0, "Repeated language switches do not write or subscribe");
       Check(root.Q<TextField>("ScienceAddInput").value == "-1", "Text input preserved");
       panel.Unload(); RuntimeText.Select("zh-CN"); Check(events.Count == 0, "Unload releases localized controls and native subscriptions");
