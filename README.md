@@ -15,6 +15,34 @@ Download the [unified v0.5.0 package](https://github.com/crayonmmn/TimberbornTra
 - **Beaver Management:** independently maintain basic hunger and thirst. Other nutrition needs are not locked; started eating/drinking actions are not forcibly cancelled. Turning maintenance off restores native updating.
 - Movable floating window, left/right docking, delayed edge hiding, independent edge-tab gestures and existing keyboard behavior remain in place.
 
+## Feature screenshots
+
+User-provided v0.5.0 in-game captures from2026-11-16, shown without cropping or content edits. All four show the Simplified Chinese interface; the English descriptions below identify the same features available in either language. The language selector is visible; these are not English-interface captures.
+
+### One-shot construction
+
+Finish eligible current construction sites once through the native game mechanism.
+
+![One-shot construction](docs/screenshots/v0.5.0/construction.png)
+
+### Warehouse inventory
+
+Read the selected warehouse, configured item, current stock and unreserved limits before editing.
+
+![Warehouse inventory](docs/screenshots/v0.5.0/inventory.png)
+
+### Science points
+
+Read, set, add or subtract science points with native read-back feedback.
+
+![Science points](docs/screenshots/v0.5.0/science.png)
+
+### Beaver hunger and thirst
+
+Control basic hunger and thirst independently while leaving other needs to the game.
+
+![Beaver hunger and thirst](docs/screenshots/v0.5.0/beaver-needs.png)
+
 ## Installation and language
 
 Verified baseline: Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows64. Uses the official mod loader; **no BepInEx, Harmony, extra Mod, Unity Editor or development SDK is required**. Other game/Unity versions and interface checks warn rather than disabling features; actual calls can fail. Windows64 and original business safety conditions remain. Compatibility with every third-party Mod is not guaranteed.
