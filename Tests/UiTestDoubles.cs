@@ -95,16 +95,26 @@ namespace UnityEngine.UIElements {
   public class ChangeEvent<T>:EventBase { public T newValue; }
   public class ValueField<T> : VisualElement {
     protected T _value; public readonly Label labelElement = new Label("");
+    // Model BaseField.label's hierarchy behavior, not only its displayed string.
+    public string label {
+      get => labelElement.text;
+      set {
+        if (labelElement.text == value) return;
+        labelElement.text = value;
+        if (string.IsNullOrEmpty(value)) labelElement.RemoveFromHierarchy();
+        else if (labelElement.parent != this) Add(labelElement);
+      }
+    }
     public T value { get => _value; set { _value = value; Send(new ChangeEvent<T> { newValue = value }); } }
     public void SetValueWithoutNotify(T v) { _value = v; }
     public void RegisterValueChangedCallback(Action<ChangeEvent<T>> callback) { RegisterCallback(callback); }
   }
-  public class TextField : ValueField<string> { public TextField(string label) { labelElement.text = label; } }
-  public class Toggle : ValueField<bool> { public Toggle(string label = "") { labelElement.text = label; } }
+  public class TextField : ValueField<string> { public TextField(string label) { this.label = label; } }
+  public class Toggle : ValueField<bool> { public Toggle(string label = "") { this.label = label; } }
   public class DropdownField : ValueField<string> {
     public List<string> choices;
     public int index { get => choices.IndexOf(value); set => this.value = choices[value]; }
-    public DropdownField(string label, List<string> choices, int index) { this.choices = choices; labelElement.text = label; SetValueWithoutNotify(choices[index]); }
+    public DropdownField(string label, List<string> choices, int index) { this.choices = choices; this.label = label; SetValueWithoutNotify(choices[index]); }
   }
   public class Foldout : ValueField<bool> { public string text; public Foldout() { Add(new Toggle()); } }
   public class ScrollView : VisualElement { public UnityEngine.Vector2 scrollOffset; }

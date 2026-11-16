@@ -35,9 +35,10 @@ namespace TimberbornTrainer.UI {
       if (binding.Tooltip != null) element.tooltip = RuntimeText.Render(binding.Tooltip);
       if (binding.Label != null) {
         string text = RuntimeText.Render(binding.Label);
-        if (element is TextField field) field.labelElement.text = text;
-        else if (element is Toggle toggle) toggle.labelElement.text = text;
-        else if (element is DropdownField dropdown) dropdown.labelElement.text = text;
+        // BaseField.label also attaches/removes the label node and updates its USS variant.
+        if (element is TextField field) field.label = text;
+        else if (element is Toggle toggle) toggle.label = text;
+        else if (element is DropdownField dropdown) dropdown.label = text;
       }
       if (binding.Choices != null && element is DropdownField choices) {
         int index = choices.choices == null ? 0 : Math.Max(0, choices.choices.IndexOf(choices.value));

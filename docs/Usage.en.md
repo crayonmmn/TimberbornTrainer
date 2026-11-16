@@ -1,24 +1,28 @@
-# Timberborn Trainer v0.5.0 — user guide
+# Timberborn Trainer v0.6.0 — user guide
 
 [简体中文](使用说明.md) · [Project source](https://github.com/crayonmmn/TimberbornTrainer)
 
-v0.5.0 has passed automated validation and user in-game acceptance (reported2026-11-16). This does not guarantee every game/Mod combination. The accepted ZIP is preserved byte-for-byte; its pre-acceptance guide wording is superseded by this online guide and the Release notice. Back up important saves.
+The user reported successful in-game testing of the manual-language/UI fixes used in v0.6.0. Automated validation is recorded separately in the [acceptance record](release/v0.6.0/acceptance.md). This does not guarantee every game/Mod combination. Back up important saves.
 
 ## Install
 
 Baseline: Steam Timberborn 1.1.2.8-ffc2de0-sw, Unity6000.5.11f1, Mono, Windows64. Use the game's official Mod manager. No BepInEx, Harmony, additional Mod, Unity Editor or development SDK is needed.
 
-Exit the game. Back up the old Mod folder and saves. Extract `TimberbornTrainer-v0.5.0-win64.zip` into `Timberborn/Mods/` under your actual Documents directory, including OneDrive redirection. The result must contain `TimberbornTrainer/manifest.json`, its DLL and `Languages/en-US.json` plus `Languages/zh-CN.json`. Replace the complete old folder; do not mix the v0.4.0 English/Chinese DLLs. Keep backups outside Mods. Only one installation with Mod ID `TimberbornTrainer.Core` may be enabled. Do not copy files into the game's Managed directory.
+Exit the game. Back up the old Mod folder and saves. Extract `TimberbornTrainer-v0.6.0-win64.zip` into `Timberborn/Mods/` under your actual Documents directory, including OneDrive redirection. The result must contain `TimberbornTrainer/manifest.json`, its DLL and `Languages/en-US.json` plus `Languages/zh-CN.json`. Replace the complete old folder; do not mix the v0.4.0 English/Chinese DLLs. Keep backups outside Mods. Only one installation with Mod ID `TimberbornTrainer.Core` may be enabled. Do not copy files into the game's Managed directory.
 
-Enable the mod in the official manager and follow the game's restart instructions. Enter a settlement and open Trainer. Global changes are off on load; enable them manually when needed. GitHub Source code archives are not installation packages. Download the unified package from the [v0.5.0 Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.5.0). Historical v0.4.0 remains available.
+Enable the mod in the official manager and follow the game's restart instructions. Enter a settlement and open Trainer. Global changes are off on load; enable them manually when needed. GitHub Source code archives are not installation packages. Download the unified package from the [v0.5.0 Release](https://github.com/crayonmmn/TimberbornTrainer/releases/tag/v0.6.0). Historical v0.4.0 remains available.
 
 ## Language settings
 
-1. With no valid saved language preference, the game's current Simplified Chinese selects zh-CN. English, unsupported languages and unreadable language settings select en-US. Traditional Chinese is not treated as Simplified Chinese.
-2. Use **Interface language** to select English or 简体中文. Text changes in place, including previous result/error messages. Native item/building names and IDs are not translated by Trainer.
-3. Manual selection is saved immediately and takes priority on later launches, even if the game's language changes. It is stored separately at `%LOCALAPPDATA%/TimberbornTrainer/language.json`; no gameplay config format or savegame is changed. If saving fails, the session choice still works and a notice is shown. Remove only this preference file while the game is closed to return to automatic selection.
+v0.6.0 uses manual language selection only.
+
+1. Without a valid saved preference, the interface starts in English. Missing/corrupt JSON or an invalid language value also defaults to English. The game's language is not read.
+2. Use **Language / 语言** to select English or 简体中文. There is no Auto option. Text changes in place, including previous result/error messages. Native item/building names and IDs still use the game's localization.
+3. Manual selection is saved immediately and restored on later launches. Existing `en-US` and `zh-CN` preferences remain valid. It is stored separately at `%LOCALAPPDATA%/TimberbornTrainer/language.json`; no gameplay config format or savegame is changed. If saving fails, the session choice still works and a notice is shown. Removing only this preference file while the game is closed returns to the English default.
 4. Both JSON files use UTF-8 and identical text keys. A missing Chinese key falls back to English; if English is unavailable, the other available resource or `[Text unavailable: key]` is used. Corrupt, duplicate-key, invalid-UTF8, missing or oversized packs cannot prevent startup. Restore both files from the unified ZIP and restart to reload them. There is no filesystem polling or hot-edit reload.
 5. Switching languages does not re-enable the trainer, change pause/speed, repeat a command, clear input fields or move/rebuild the window. Language feedback is separate from the last business result.
+
+**Enable global changes** permits inventory, research and construction commands and selected hunger/thirst maintenance. Reading remains available while off; inventory editing also requires pausing the game. The label and explanation refresh in the selected language.
 
 ## Resource Management
 
@@ -44,7 +48,7 @@ Turning a need or the global switch off restores its previous native update stat
 
 ## Window and configuration
 
-Drag the title bar, dock left/right, and let the panel hide after leaving it. Hover/click the edge tab to reveal; drag beyond6 UI units to move only the tab without opening. Drag the full panel away from the edge to keep it expanded. No position is persisted across launches. Ordinary panel controls retain existing WASD routing; text inputs accept typing. The user reports normal v0.5.0 operation; additional resolutions, fonts and Mod combinations are not exhaustively verified.
+Drag the title bar, dock left/right, and let the panel hide after leaving it. Hover/click the edge tab to reveal; drag beyond6 UI units to move only the tab without opening. Drag the full panel away from the edge to keep it expanded. No position is persisted across launches. Ordinary panel controls retain existing WASD routing; text inputs accept typing. The user reports normal operation of the current fixes; additional resolutions, fonts and Mod combinations are not exhaustively verified.
 
 Save/load/import/export gameplay preferences using the existing controls. Loading/importing does not automatically enable global changes or execute commands. Language preference is separate. Invalid input, unsupported targets, failed reads and compatibility diagnostics are shown; do not assume a warning proves an unverified version works.
 

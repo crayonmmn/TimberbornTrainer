@@ -15,11 +15,7 @@ namespace TimberbornTrainer.Localization {
     public static string Language { get; private set; } = "en-US";
     public static string LoadWarning { get; private set; }
     public static event Action Changed;
-    public static string Normalize(string value) {
-      value = (value ?? "").Replace("-", "").Replace("_", "").ToLowerInvariant();
-      return value == "zhcn" || value == "zhhans" || value == "simplifiedchinese" ? "zh-CN" : "en-US";
-    }
-    public static void Configure(string languageDirectory, string preference, string gameLanguage = null) {
+    public static void Configure(string languageDirectory, string preference) {
       _preference = preference; _manual = null; LoadWarning = null;
       _english = ReadPack(Path.Combine(languageDirectory ?? "", "en-US.json"));
       _chinese = ReadPack(Path.Combine(languageDirectory ?? "", "zh-CN.json"));
@@ -31,7 +27,7 @@ namespace TimberbornTrainer.Localization {
         }
       } catch { /* A corrupt preference never prevents startup. */ }
       TextToken.Display = Render;
-      SelectInitial(gameLanguage);
+      SetLanguage(_manual ?? "en-US");
     }
     private static Dictionary<string, string> ReadPack(string path) {
       try {
@@ -46,7 +42,6 @@ namespace TimberbornTrainer.Localization {
         return result;
       } catch { LoadWarning = "Language files could not be fully loaded; fallback text is in use."; return new Dictionary<string, string>(); }
     }
-    public static void SelectInitial(string gameLanguage) => SetLanguage(_manual ?? Normalize(gameLanguage));
     private static void SetLanguage(string value) {
       if (Language == value) return;
       Language = value;

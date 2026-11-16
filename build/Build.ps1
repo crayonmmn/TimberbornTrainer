@@ -45,7 +45,7 @@ foreach ($file in @('en-US.json','zh-CN.json')) {
   Copy-Item -LiteralPath (Join-Path $projectRoot ('Languages/' + $file)) -Destination (Join-Path $languageOutput $file) -Force
 }
 $manifest = Get-Content -LiteralPath (Join-Path $package 'manifest.json') -Raw | ConvertFrom-Json
-$manifest.Name = 'Timberborn Trainer'
+$manifest.Name = 'Timberborn Trainer / 海狸浮生记修改器'
 $manifest.Description = 'Resource Management, Building & Production, and Beaver Management. Runtime English / Simplified Chinese.'
 $manifest | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $package 'manifest.json') -Encoding utf8NoBOM
 Write-Output 'Unified Release built. Language resources are external; no installation performed.'
