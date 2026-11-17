@@ -45,6 +45,14 @@ Control basic hunger and thirst independently while leaving other needs to the g
 
 ## Installation and language
 
+**Local manual-install directory (Windows)**
+
+- Default: `%USERPROFILE%\Documents\Timberborn\Mods\TimberbornTrainer\`
+- If Documents is redirected to OneDrive, use its actual location, for example `%OneDrive%\Documents\Timberborn\Mods\TimberbornTrainer\`. The folder name and drive may differ on your PC.
+- To find the correct location, open **Documents** in File Explorer and then `Timberborn\Mods`. The game's Mod Manager also provides **Browse local mods**. Use that folder rather than guessing a drive or username.
+
+Extract the ZIP's `TimberbornTrainer` folder into `Mods`, so `manifest.json` is directly at `Mods\TimberbornTrainer\manifest.json`. Avoid `Mods\TimberbornTrainer\TimberbornTrainer\` nesting. This is the **user Mod folder**, not the Steam game installation folder or `Timberborn_Data\Managed`. If using the Workshop copy, do not also keep a manual copy with the same Mod ID.
+
 Verified baseline: Steam Timberborn **1.1.2.8-ffc2de0-sw**, Unity **6000.5.11f1**, Mono, Windows64. Uses the official mod loader; **no BepInEx, Harmony, extra Mod, Unity Editor or development SDK is required**. Other game/Unity versions and interface checks warn rather than disabling features; actual calls can fail. Windows64 and original business safety conditions remain. Compatibility with every third-party Mod is not guaranteed.
 
 For v0.6.0, use `TimberbornTrainer-v0.6.0-win64.zip`. Exit the game, back up saves and the old Mod folder, and replace the complete folder in your actual Documents directory (which may be redirected to OneDrive):

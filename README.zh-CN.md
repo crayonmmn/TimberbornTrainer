@@ -45,6 +45,14 @@
 
 ## 安装与语言
 
+**Windows 本地手动安装目录**
+
+- 默认位置：`%USERPROFILE%\Documents\Timberborn\Mods\TimberbornTrainer\`
+- 如果“文档”已重定向到 OneDrive，请使用实际位置，例如 `%OneDrive%\Documents\Timberborn\Mods\TimberbornTrainer\`。不同电脑的盘符及文件夹名称可能不同。
+- 查找方法：在文件资源管理器中打开 **“文档”**，再进入 `Timberborn\Mods`；也可在游戏 Mod Manager 中点击 **“浏览本地模组”**，以打开的目录为准，不要直接猜测盘符或用户名。
+
+把 ZIP 中的 `TimberbornTrainer` 文件夹解压到 `Mods`，最终必须存在 `Mods\TimberbornTrainer\manifest.json`。避免多套一层 `Mods\TimberbornTrainer\TimberbornTrainer\`。这里是**用户 Mod 目录**，不是 Steam 游戏安装目录，也不是 `Timberborn_Data\Managed`。使用创意工坊订阅版时，不要再同时保留同 Mod ID 的手动安装副本。
+
 已验证环境基准：Windows64、Steam Timberborn **1.1.2.8-ffc2de0-sw**、Unity **6000.5.11f1**、Mono。使用游戏官方Mod加载器，无需BepInEx、Harmony、其他Mod、Unity Editor或开发SDK。其他游戏／Unity版本及接口诊断只警告，不保证实际功能可用；Windows64平台与原有业务安全检查保留。不承诺兼容所有第三方Mod。
 
 v0.6.0统一包为 `TimberbornTrainer-v0.6.0-win64.zip`。退出游戏、备份重要存档和旧Mod目录后，将完整文件夹放到实际“文档”目录的 `Timberborn/Mods/`（注意OneDrive重定向）：

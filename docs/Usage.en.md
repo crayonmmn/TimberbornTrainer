@@ -6,6 +6,14 @@ The user reported successful in-game testing of the manual-language/UI fixes use
 
 ## Install
 
+**Local manual-install directory (Windows)**
+
+- Default: `%USERPROFILE%\Documents\Timberborn\Mods\TimberbornTrainer\`
+- If Documents is redirected to OneDrive, use its actual location, for example `%OneDrive%\Documents\Timberborn\Mods\TimberbornTrainer\`. The folder name and drive may differ on your PC.
+- To find the correct location, open **Documents** in File Explorer and then `Timberborn\Mods`. The game's Mod Manager also provides **Browse local mods**. Use that folder rather than guessing a drive or username.
+
+Extract the ZIP's `TimberbornTrainer` folder into `Mods`, so `manifest.json` is directly at `Mods\TimberbornTrainer\manifest.json`. Avoid `Mods\TimberbornTrainer\TimberbornTrainer\` nesting. This is the **user Mod folder**, not the Steam game installation folder or `Timberborn_Data\Managed`. If using the Workshop copy, do not also keep a manual copy with the same Mod ID.
+
 Baseline: Steam Timberborn 1.1.2.8-ffc2de0-sw, Unity6000.5.11f1, Mono, Windows64. Use the game's official Mod manager. No BepInEx, Harmony, additional Mod, Unity Editor or development SDK is needed.
 
 Exit the game. Back up the old Mod folder and saves. Extract `TimberbornTrainer-v0.6.0-win64.zip` into `Timberborn/Mods/` under your actual Documents directory, including OneDrive redirection. The result must contain `TimberbornTrainer/manifest.json`, its DLL and `Languages/en-US.json` plus `Languages/zh-CN.json`. Replace the complete old folder; do not mix the v0.4.0 English/Chinese DLLs. Keep backups outside Mods. Only one installation with Mod ID `TimberbornTrainer.Core` may be enabled. Do not copy files into the game's Managed directory.
